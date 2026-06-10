@@ -15,6 +15,36 @@ def customizar_nicks_hh(texto_hh, novo_nick):
     texto_atualizado = re.sub(r'\bHero\b', novo_nick, texto_hh, flags=re.IGNORECASE)
     return texto_atualizado
 
+# --- FUNÇÃO PARA PROCESSAR INPUTS DA GG (TXT OU ZIP) ---
+def processar_arquivos_gg(arquivos_upados, nick):
+    """Lê arquivos da GG, aceitando tanto .txt quanto extraindo de dentro de .zip"""
+    texto_acumulado = ""
+    contagem = 0
+    
+    for arq in arquivos_upados:
+        nome_arq = arq.name.lower()
+        
+        # Se for um arquivo ZIP enviado direto da GG
+        if nome_arq.endswith(".zip"):
+            try:
+                with zipfile.ZipFile(arq) as z:
+                    for filename in z.namelist():
+                        if filename.lower().endswith(".txt"):
+                            with z.open(filename) as f:
+                                conteudo = f.read().decode("utf-8", errors="ignore")
+                                texto_acumulado += customizar_nicks_hh(conteudo, nick) + "\n\n"
+                                contagem += 1
+            except Exception:
+                pass
+                
+        # Se for o arquivo TXT tradicional
+        elif nome_arq.endswith(".txt"):
+            conteudo = arq.read().decode("utf-8", errors="ignore")
+            texto_acumulado += customizar_nicks_hh(conteudo, nick) + "\n\n"
+            contagem += 1
+            
+    return texto_acumulado, contagem
+
 # --- CAPTURA DE CONFIGURAÇÕES VIA URL ---
 default_nome = str.query_params.get("nome", "")
 default_gg = str.query_params.get("gg", "")
@@ -54,7 +84,7 @@ arquivos_totais = 0
 if modo == "Apenas trocar o nick":
     
     str.markdown("### 🔴 GGPoker")
-    arquivos_gg = str.file_uploader("Arraste os arquivos .txt da GGPoker", type=["txt"], accept_multiple_files=True, key="gg_txt")
+    arquivos_gg = str.file_uploader("Arraste os arquivos .txt ou .zip da GGPoker", type=["txt", "zip"], accept_multiple_files=True, key="gg_txt")
     
     str.markdown("---")
     str.markdown("### 🧡 PartyPoker")
@@ -63,10 +93,9 @@ if modo == "Apenas trocar o nick":
     texto_final_unificado = ""
     
     if arquivos_gg:
-        for arq in arquivos_gg:
-            conteudo = arq.read().decode("utf-8", errors="ignore")
-            texto_final_unificado += customizar_nicks_hh(conteudo, nick_gg) + "\n\n"
-            arquivos_totais += 1
+        texto_gg, qtd = processar_arquivos_gg(arquivos_gg, nick_gg)
+        texto_final_unificado += texto_gg
+        arquivos_totais += qtd
             
     if arquivos_party:
         for arq in arquivos_party:
@@ -76,7 +105,7 @@ if modo == "Apenas trocar o nick":
 
     if arquivos_totais > 0:
         str.markdown("---")
-        str.success(f"🎉 Pronto! {arquivos_totais} arquivo(s) convertido(s) com sucesso!")
+        str.success(f"🎉 Pronto! {arquivos_totais} arquivo(s) de mãos convertido(s) com sucesso!")
         
         str.download_button(
             label="📥 Baixar Arquivo Convertido (.TXT)",
@@ -92,7 +121,7 @@ if modo == "Apenas trocar o nick":
 # --- LÓGICA MODO: ORGANIZAR PARA O DRIVE ---
 else:
     str.markdown("### 🔴 GGPoker")
-    arquivos_gg = str.file_uploader("Arraste os arquivos .txt da GGPoker", type=["txt"], accept_multiple_files=True, key="drive_gg")
+    arquivos_gg = str.file_uploader("Arraste os arquivos .txt ou .zip da GGPoker", type=["txt", "zip"], accept_multiple_files=True, key="drive_gg")
     
     str.markdown("---")
     str.markdown("### 🧡 PartyPoker")
@@ -114,14 +143,12 @@ else:
     buffer_zip = io.BytesIO()
     
     with zipfile.ZipFile(buffer_zip, "w", zipfile.ZIP_DEFLATED) as arquivo_zip:
-        # 1. Processar GG
+        # 1. Processar GG (Lendo TXT ou ZIP interno)
         if arquivos_gg:
-            texto_gg = ""
-            for arq in arquivos_gg:
-                conteudo = arq.read().decode("utf-8", errors="ignore")
-                texto_gg += customizar_nicks_hh(conteudo, nick_gg) + "\n\n"
-                arquivos_totais += 1
-            arquivo_zip.writestr("GGPoker_convertido.txt", texto_gg)
+            texto_gg, qtd = processar_arquivos_gg(arquivos_gg, nick_gg)
+            if texto_gg:
+                arquivo_zip.writestr("GGPoker_convertido.txt", texto_gg)
+                arquivos_totais += qtd
             
         # 2. Processar Party
         if arquivos_party:
@@ -162,7 +189,7 @@ else:
         nome_limpo = nome_jogador.strip() if nome_jogador.strip() else "Jogador Sem Nome"
         nome_zip_final = f"{ano_mes} {nome_limpo}.zip"
         
-        str.success(f"📦 Pacote estruturado com sucesso! Total de {arquivos_totais} arquivos organizados.")
+        str.success(f"📦 Pacote estruturado com sucesso! Total de {arquivos_totais} arquivos de mãos organizados.")
         buffer_zip.seek(0)
         
         str.download_button(
