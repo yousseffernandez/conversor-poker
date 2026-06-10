@@ -67,7 +67,7 @@ modo = str.sidebar.radio(
     index=0 if default_modo == "Apenas trocar o nick" else 1
 )
 
-# Link dinâmico corrigido para salvar nos favoritos
+# Link dinâmico para salvar nos favoritos
 str.sidebar.markdown("---")
 str.sidebar.markdown("### 💾 Salvar minhas Configurações")
 if nome_jogador or nick_gg or nick_party:
@@ -82,7 +82,7 @@ arquivos_totais = 0
 if modo == "Apenas trocar o nick":
     
     str.markdown("### 🔴 GGPoker")
-    arquivos_gg = str.file_uploader("Arraste os arquivos .txt ou .zip da GGPoker", type=["txt", "zip"], accept_multiple_files=True, key="gg_txt")
+    arquivos_gg = str.file_uploader("Arraste o seu arquivo .zip (ou .txt) da GGPoker", type=["txt", "zip"], accept_multiple_files=True, key="gg_txt")
     
     str.markdown("---")
     str.markdown("### 🧡 PartyPoker")
@@ -119,7 +119,7 @@ if modo == "Apenas trocar o nick":
 # --- LÓGICA MODO: ORGANIZAR PARA O DRIVE ---
 else:
     str.markdown("### 🔴 GGPoker")
-    arquivos_gg = str.file_uploader("Arraste os arquivos .txt ou .zip da GGPoker", type=["txt", "zip"], accept_multiple_files=True, key="drive_gg")
+    arquivos_gg = str.file_uploader("Arraste o seu arquivo .zip (ou .txt) da GGPoker", type=["txt", "zip"], accept_multiple_files=True, key="drive_gg")
     
     str.markdown("---")
     str.markdown("### 🧡 PartyPoker")
@@ -183,8 +183,6 @@ else:
         nome_zip_final = f"{ano_mes} {nome_limpo}.zip"
         
         str.success(f"📦 Pacote estruturado com sucesso! Total de {arquivos_totais} arquivos de mãos organizados.")
-        
-        # --- MENSAGEM DE ORIENTAÇÃO PARA O DRIVE ---
         str.info(f"ℹ️ **Próximo passo:** Baixe o arquivo abaixo e coloque-o diretamente na sua pasta de **Database** no Google Drive!")
         
         buffer_zip.seek(0)
