@@ -24,7 +24,6 @@ def processar_arquivos_gg(arquivos_upados, nick):
     for arq in arquivos_upados:
         nome_arq = arq.name.lower()
         
-        # Se for um arquivo ZIP enviado direto da GG
         if nome_arq.endswith(".zip"):
             try:
                 with zipfile.ZipFile(arq) as z:
@@ -37,7 +36,6 @@ def processar_arquivos_gg(arquivos_upados, nick):
             except Exception:
                 pass
                 
-        # Se for o arquivo TXT tradicional
         elif nome_arq.endswith(".txt"):
             conteudo = arq.read().decode("utf-8", errors="ignore")
             texto_acumulado += customizar_nicks_hh(conteudo, nick) + "\n\n"
@@ -69,11 +67,12 @@ modo = str.sidebar.radio(
     index=0 if default_modo == "Apenas trocar o nick" else 1
 )
 
-# Link dinâmico para salvar nos favoritos
+# Link dinâmico corrigido para salvar nos favoritos
 str.sidebar.markdown("---")
 str.sidebar.markdown("### 💾 Salvar minhas Configurações")
 if nome_jogador or nick_gg or nick_party:
-    link_salvar = f"https://trocarsnick.streamlit.app/?nome={nome_jogador.replace(' ', '%20')}&gg={nick_gg}&party={nick_party}&modo={modo.replace(' ', '%20')}"
+    # LINK CORRIGIDO PARA: trocarnick.streamlit.app
+    link_salvar = f"https://trocarnick.streamlit.app/?nome={nome_jogador.replace(' ', '%20')}&gg={nick_gg}&party={nick_party}&modo={modo.replace(' ', '%20')}"
     str.sidebar.markdown("Adicione o link abaixo aos seus **Favoritos** para não precisar digitar de novo:")
     str.sidebar.code(link_salvar, language="text")
 
@@ -143,14 +142,12 @@ else:
     buffer_zip = io.BytesIO()
     
     with zipfile.ZipFile(buffer_zip, "w", zipfile.ZIP_DEFLATED) as arquivo_zip:
-        # 1. Processar GG (Lendo TXT ou ZIP interno)
         if arquivos_gg:
             texto_gg, qtd = processar_arquivos_gg(arquivos_gg, nick_gg)
             if texto_gg:
                 arquivo_zip.writestr("GGPoker_convertido.txt", texto_gg)
                 arquivos_totais += qtd
             
-        # 2. Processar Party
         if arquivos_party:
             texto_party = ""
             for arq in arquivos_party:
@@ -159,7 +156,6 @@ else:
                 arquivos_totais += 1
             arquivo_zip.writestr("PartyPoker_convertido.txt", texto_party)
             
-        # 3. Processar PokerStars (Direto)
         if arquivos_stars:
             texto_stars = ""
             for arq in arquivos_stars:
@@ -167,7 +163,6 @@ else:
                 arquivos_totais += 1
             arquivo_zip.writestr("PokerStars.txt", texto_stars)
             
-        # 4. Processar WPN (Direto)
         if arquivos_wpn:
             texto_wpn = ""
             for arq in arquivos_wpn:
@@ -175,7 +170,6 @@ else:
                 arquivos_totais += 1
             arquivo_zip.writestr("WPN.txt", texto_wpn)
             
-        # 5. Processar CoinPoker (Direto)
         if arquivos_coin:
             texto_coin = ""
             for arq in arquivos_coin:
