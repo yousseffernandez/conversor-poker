@@ -78,7 +78,7 @@ col_esquerda, col_direita = st.columns([1, 3], gap="large")
 # --- COLUNA DA ESQUERDA (CONFIGURAÇÕES GERAIS) ---
 with col_esquerda:
     st.subheader("⚙️ Configurações Gerais")
-    nome_jogador = st.text_input("Seu Nome e Sobrenome", value=default_nome, placeholder="Ex: Ramon Sfalsin")
+    nome_jogador = st.text_input("Seu Nome e Sobrenome", value=default_nome, placeholder="Ex: João Silva")
     nick_gg = st.text_input("Nick no GGPoker", value=default_gg, placeholder="Seu nick na GG")
     nick_party = st.text_input("Nick no PartyPoker", value=default_party, placeholder="Seu nick na Party")
     
