@@ -4,7 +4,7 @@ import io
 import zipfile
 from datetime import datetime
 
-# CONFIGURAÇÃO DA PÁGINA (Barra lateral travada no modo visível por padrão)
+# CONFIGURAÇÃO DA PÁGINA
 str.set_page_config(
     page_title="HH Nick Changer", 
     page_icon="🃏", 
@@ -12,12 +12,23 @@ str.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Estilização em CSS para esconder o botão de recolher (setinha <<) e fixar a barra
+# Forçar a barra lateral a ficar estática e remover TODOS os botões de recolher/abrir
 str.markdown(
     """
     <style>
+        /* Esconde a setinha tradicional << */
         [data-testid="collapsedControl"] {
-            display: none;
+            display: none !important;
+        }
+        /* Esconde o botão de menu (três risquinhos) em telas menores */
+        button[title="Collapse sidebar"], 
+        button[title="Expand sidebar"] {
+            display: none !important;
+        }
+        /* Garante que a barra lateral ocupe seu espaço sem animações de fechar */
+        section[data-testid="stSidebar"] {
+            min-width: 300px !important;
+            max-width: 300px !important;
         }
     </style>
     """,
