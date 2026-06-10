@@ -71,7 +71,6 @@ modo = str.sidebar.radio(
 str.sidebar.markdown("---")
 str.sidebar.markdown("### 💾 Salvar minhas Configurações")
 if nome_jogador or nick_gg or nick_party:
-    # LINK CORRIGIDO PARA: trocarnick.streamlit.app
     link_salvar = f"https://trocarnick.streamlit.app/?nome={nome_jogador.replace(' ', '%20')}&gg={nick_gg}&party={nick_party}&modo={modo.replace(' ', '%20')}"
     str.sidebar.markdown("Adicione o link abaixo aos seus **Favoritos** para não precisar digitar de novo:")
     str.sidebar.code(link_salvar, language="text")
@@ -184,6 +183,10 @@ else:
         nome_zip_final = f"{ano_mes} {nome_limpo}.zip"
         
         str.success(f"📦 Pacote estruturado com sucesso! Total de {arquivos_totais} arquivos de mãos organizados.")
+        
+        # --- MENSAGEM DE ORIENTAÇÃO PARA O DRIVE ---
+        str.info(f"ℹ️ **Próximo passo:** Baixe o arquivo abaixo e coloque-o diretamente na sua pasta de **Database** no Google Drive!")
+        
         buffer_zip.seek(0)
         
         str.download_button(
