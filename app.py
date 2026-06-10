@@ -70,7 +70,7 @@ default_party = st.query_params.get("party", "")
 default_modo = st.query_params.get("modo", "Organizar para o Drive")
 
 # --- INTERFACE INTERATIVA ---
-st.title("🃏 Conversor de Hand History por Plataforma")
+st.title("🃏 Organizador de Database")
 st.markdown("---")
 
 col_esquerda, col_direita = st.columns([1, 3], gap="large")
