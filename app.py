@@ -4,8 +4,25 @@ import io
 import zipfile
 from datetime import datetime
 
-# Configuração da página
-str.set_page_config(page_title="HH Nick Changer", page_icon="🃏", layout="centered")
+# CONFIGURAÇÃO DA PÁGINA (Barra lateral travada no modo visível por padrão)
+str.set_page_config(
+    page_title="HH Nick Changer", 
+    page_icon="🃏", 
+    layout="centered",
+    initial_sidebar_state="expanded"
+)
+
+# Estilização em CSS para esconder o botão de recolher (setinha <<) e fixar a barra
+str.markdown(
+    """
+    <style>
+        [data-testid="collapsedControl"] {
+            display: none;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # --- FUNÇÃO DE CONVERSÃO ---
 def customizar_nicks_hh(texto_hh, novo_nick):
