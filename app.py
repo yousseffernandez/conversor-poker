@@ -60,7 +60,7 @@ if modo == "Apenas trocar o nick":
     
     str.markdown("---")
     str.markdown("### 🎯 PartyPoker (Arquivos serão unidos em um único TXT)")
-    arquivos_party = str.file_uploader("Arraste os arquivos .txt do PARTYPOKER", type=["txt"], accept_multiple_files=True, key=party_txt)
+    arquivos_party = str.file_uploader("Arraste os arquivos .txt do PARTYPOKER", type=["txt"], accept_multiple_files=True, key="party_txt")
 
     texto_final_unificado = ""
     
