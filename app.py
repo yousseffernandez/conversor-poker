@@ -4,32 +4,20 @@ import io
 import zipfile
 from datetime import datetime
 
-# CONFIGURAÇÃO DA PÁGINA
+# CONFIGURAÇÃO DA PÁGINA (Interface limpa e centralizada)
 str.set_page_config(
     page_title="HH Nick Changer", 
     page_icon="🃏", 
     layout="centered",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# Forçar a barra lateral a ficar estática e remover TODOS os botões de recolher/abrir
+# Injetar CSS para garantir que a barra lateral nativa fique 100% invisível
 str.markdown(
     """
     <style>
-        /* Esconde a setinha tradicional << */
-        [data-testid="collapsedControl"] {
-            display: none !important;
-        }
-        /* Esconde o botão de menu (três risquinhos) em telas menores */
-        button[title="Collapse sidebar"], 
-        button[title="Expand sidebar"] {
-            display: none !important;
-        }
-        /* Garante que a barra lateral ocupe seu espaço sem animações de fechar */
-        section[data-testid="stSidebar"] {
-            min-width: 300px !important;
-            max-width: 300px !important;
-        }
+        [data-testid="collapsedControl"] { display: none !important; }
+        section[data-testid="stSidebar"] { display: none !important; }
     </style>
     """,
     unsafe_allow_html=True
@@ -50,9 +38,9 @@ def processar_arquivos_gg(arquivos_upados, nick):
     contagem = 0
     
     for arq in arquivos_upados:
-        nome_arq = arq.name.lower()
+        name_arq = arq.name.lower()
         
-        if nome_arq.endswith(".zip"):
+        if name_arq.endswith(".zip"):
             try:
                 with zipfile.ZipFile(arq) as z:
                     for filename in z.namelist():
@@ -64,7 +52,7 @@ def processar_arquivos_gg(arquivos_upados, nick):
             except Exception:
                 pass
                 
-        elif nome_arq.endswith(".txt"):
+        elif name_arq.endswith(".txt"):
             conteudo = arq.read().decode("utf-8", errors="ignore")
             texto_acumulado += customizar_nicks_hh(conteudo, nick) + "\n\n"
             contagem += 1
@@ -77,31 +65,38 @@ default_gg = str.query_params.get("gg", "")
 default_party = str.query_params.get("party", "")
 default_modo = str.query_params.get("modo", "Apenas trocar o nick")
 
-# --- INTERFACE INTERATIVA (STREAMLIT) ---
+# --- INTERFACE INTERATIVA (CORPO PRINCIPAL) ---
 str.title("🃏 Conversor de Hand History por Plataforma")
 str.markdown("---")
 
-# 1. Configuração na Barra Lateral
-str.sidebar.header("⚙️ Configurações Gerais")
-nome_jogador = str.sidebar.text_input("Seu Nome e Sobrenome (Jogador)", value=default_nome, placeholder="Ex: Ramon Sfalsin")
-nick_gg = str.sidebar.text_input("Seu Nick no GGPoker", value=default_gg, placeholder="Digite seu nick da GG")
-nick_party = str.sidebar.text_input("Seu Nick no PartyPoker", value=default_party, placeholder="Digite seu nick da Party")
+# 1. Painel de Configurações Gerais no Topo
+str.subheader("⚙️ Configurações Gerais")
+col1, col2, col3 = str.columns(3)
 
-str.sidebar.markdown("---")
-str.sidebar.header("🎯 Modo de Operação")
-modo = str.sidebar.radio(
+with col1:
+    nome_jogador = str.text_input("Seu Nome e Sobrenome (Jogador)", value=default_nome, placeholder="Ex: Ramon Sfalsin")
+with col2:
+    nick_gg = str.text_input("Seu Nick no GGPoker", value=default_gg, placeholder="Digite seu nick da GG")
+with col3:
+    nick_party = str.text_input("Seu Nick no PartyPoker", value=default_party, placeholder="Digite seu nick da Party")
+
+# 2. Seleção do Modo de Operação
+str.markdown("### 🎯 Modo de Operação")
+modo = str.radio(
     "O que deseja fazer?",
     ["Apenas trocar o nick", "Organizar para o Drive"],
-    index=0 if default_modo == "Apenas trocar o nick" else 1
+    index=0 if default_modo == "Apenas trocar o nick" else 1,
+    horizontal=True
 )
 
-# Link dinâmico para salvar nos favoritos
-str.sidebar.markdown("---")
-str.sidebar.markdown("### 💾 Salvar minhas Configurações")
+# 3. Bloco para Salvar Configurações (Apenas se tiver dados)
 if nome_jogador or nick_gg or nick_party:
-    link_salvar = f"https://trocarnick.streamlit.app/?nome={nome_jogador.replace(' ', '%20')}&gg={nick_gg}&party={nick_party}&modo={modo.replace(' ', '%20')}"
-    str.sidebar.markdown("Adicione o link abaixo aos seus **Favoritos** para não precisar digitar de novo:")
-    str.sidebar.code(link_salvar, language="text")
+    with str.expander("💾 Salvar minhas Configurações (Clique para ver o Link)"):
+        link_salvar = f"https://trocarnick.streamlit.app/?nome={nome_jogador.replace(' ', '%20')}&gg={nick_gg}&party={nick_party}&modo={modo.replace(' ', '%20')}"
+        str.markdown("Adicione o link abaixo aos seus **Favoritos** do seu navegador para carregar tudo preenchido automaticamente:")
+        str.code(link_salvar, language="text")
+
+str.markdown("---")
 
 # Variáveis de controle de fluxo de arquivos
 arquivos_totais = 0
@@ -140,12 +135,8 @@ if modo == "Apenas trocar o nick":
             mime="text/plain",
             use_container_width=True
         )
-    else:
-        str.markdown("---")
-        str.info("💡 Insira os arquivos da GG ou Party acima para gerar o seu arquivo convertido.")
-
-# --- LÓGICA MODO: ORGANIZAR PARA O DRIVE ---
 else:
+    # --- LÓGICA MODO: ORGANIZAR PARA O DRIVE ---
     str.markdown("### 🔴 GGPoker")
     arquivos_gg = str.file_uploader("Arraste o seu arquivo .zip (ou .txt) da GGPoker", type=["txt", "zip"], accept_multiple_files=True, key="drive_gg")
     
