@@ -4,23 +4,11 @@ import io
 import zipfile
 from datetime import datetime
 
-# CONFIGURAÇÃO DA PÁGINA (Interface limpa e centralizada)
+# CONFIGURAÇÃO DA PÁGINA
 str.set_page_config(
     page_title="HH Nick Changer", 
     page_icon="🃏", 
-    layout="centered",
-    initial_sidebar_state="collapsed"
-)
-
-# Injetar CSS para garantir que a barra lateral nativa fique 100% invisível
-str.markdown(
-    """
-    <style>
-        [data-testid="collapsedControl"] { display: none !important; }
-        section[data-testid="stSidebar"] { display: none !important; }
-    </style>
-    """,
-    unsafe_allow_html=True
+    layout="wide"  # Mudamos para wide para dar espaço perfeito para as duas colunas ao mesmo tempo
 )
 
 # --- FUNÇÃO DE CONVERSÃO ---
@@ -65,154 +53,156 @@ default_gg = str.query_params.get("gg", "")
 default_party = str.query_params.get("party", "")
 default_modo = str.query_params.get("modo", "Apenas trocar o nick")
 
-# --- INTERFACE INTERATIVA (CORPO PRINCIPAL) ---
+# --- INTERFACE INTERATIVA COM DIVISÃO FIXA ---
 str.title("🃏 Conversor de Hand History por Plataforma")
 str.markdown("---")
 
-# 1. Painel de Configurações Gerais no Topo
-str.subheader("⚙️ Configurações Gerais")
-col1, col2, col3 = str.columns(3)
+# Criamos duas colunas grandes fixas na tela: 
+# Esquerda (Configurações - peso 1) e Direita (Uploads - peso 3)
+col_esquerda, col_direita = str.columns([1, 3], gap="large")
 
-with col1:
-    nome_jogador = str.text_input("Seu Nome e Sobrenome (Jogador)", value=default_nome, placeholder="Ex: Ramon Sfalsin")
-with col2:
-    nick_gg = str.text_input("Seu Nick no GGPoker", value=default_gg, placeholder="Digite seu nick da GG")
-with col3:
-    nick_party = str.text_input("Seu Nick no PartyPoker", value=default_party, placeholder="Digite seu nick da Party")
-
-# 2. Seleção do Modo de Operação
-str.markdown("### 🎯 Modo de Operação")
-modo = str.radio(
-    "O que deseja fazer?",
-    ["Apenas trocar o nick", "Organizar para o Drive"],
-    index=0 if default_modo == "Apenas trocar o nick" else 1,
-    horizontal=True
-)
-
-# 3. Bloco para Salvar Configurações (Apenas se tiver dados)
-if nome_jogador or nick_gg or nick_party:
-    with str.expander("💾 Salvar minhas Configurações (Clique para ver o Link)"):
-        link_salvar = f"https://trocarnick.streamlit.app/?nome={nome_jogador.replace(' ', '%20')}&gg={nick_gg}&party={nick_party}&modo={modo.replace(' ', '%20')}"
-        str.markdown("Adicione o link abaixo aos seus **Favoritos** do seu navegador para carregar tudo preenchido automaticamente:")
-        str.code(link_salvar, language="text")
-
-str.markdown("---")
-
-# Variáveis de controle de fluxo de arquivos
-arquivos_totais = 0
-
-# --- LÓGICA MODO: APENAS TROCAR O NICK ---
-if modo == "Apenas trocar o nick":
-    
-    str.markdown("### 🔴 GGPoker")
-    arquivos_gg = str.file_uploader("Arraste o seu arquivo .zip (ou .txt) da GGPoker", type=["txt", "zip"], accept_multiple_files=True, key="gg_txt")
+# --- COLUNA DA ESQUERDA (CONFIGURAÇÕES FIXAS) ---
+with col_esquerda:
+    str.subheader("⚙️ Configurações")
+    nome_jogador = str.text_input("Seu Nome e Sobrenome", value=default_nome, placeholder="Ex: Ramon Sfalsin")
+    nick_gg = str.text_input("Nick no GGPoker", value=default_gg, placeholder="Seu nick na GG")
+    nick_party = str.text_input("Nick no PartyPoker", value=default_party, placeholder="Seu nick na Party")
     
     str.markdown("---")
-    str.markdown("### 🧡 PartyPoker")
-    arquivos_party = str.file_uploader("Arraste os arquivos .txt do PartyPoker", type=["txt"], accept_multiple_files=True, key="party_txt")
+    str.subheader("🎯 Operação")
+    modo = str.radio(
+        "Escolha o modo:",
+        ["Apenas trocar o nick", "Organizar para o Drive"],
+        index=0 if default_modo == "Apenas trocar o nick" else 1
+    )
 
-    texto_final_unificado = ""
-    
-    if arquivos_gg:
-        texto_gg, qtd = processar_arquivos_gg(arquivos_gg, nick_gg)
-        texto_final_unificado += texto_gg
-        arquivos_totais += qtd
-            
-    if arquivos_party:
-        for arq in arquivos_party:
-            conteudo = arq.read().decode("utf-8", errors="ignore")
-            texto_final_unificado += customizar_nicks_hh(conteudo, nick_party) + "\n\n"
-            arquivos_totais += 1
+# --- COLUNA DA DIREITA (ÁREA DE UPLOADS E DOWNLOAD) ---
+with col_direita:
+    arquivos_totais = 0
 
-    if arquivos_totais > 0:
-        str.markdown("---")
-        str.success(f"🎉 Pronto! {arquivos_totais} arquivo(s) de mãos convertido(s) com sucesso!")
+    # LÓGICA MODO: APENAS TROCAR O NICK
+    if modo == "Apenas trocar o nick":
+        str.markdown("### 🔴 GGPoker")
+        arquivos_gg = str.file_uploader("Arraste o seu arquivo .zip (ou .txt) da GGPoker", type=["txt", "zip"], accept_multiple_files=True, key="gg_txt")
         
-        str.download_button(
-            label="📥 Baixar Arquivo Convertido (.TXT)",
-            data=texto_final_unificado,
-            file_name="hands_convertidas.txt",
-            mime="text/plain",
-            use_container_width=True
-        )
-else:
-    # --- LÓGICA MODO: ORGANIZAR PARA O DRIVE ---
-    str.markdown("### 🔴 GGPoker")
-    arquivos_gg = str.file_uploader("Arraste o seu arquivo .zip (ou .txt) da GGPoker", type=["txt", "zip"], accept_multiple_files=True, key="drive_gg")
-    
-    str.markdown("---")
-    str.markdown("### 🧡 PartyPoker")
-    arquivos_party = str.file_uploader("Arraste os arquivos .txt do PartyPoker", type=["txt"], accept_multiple_files=True, key="drive_party")
-    
-    str.markdown("---")
-    str.markdown("### ♠️ PokerStars")
-    arquivos_stars = str.file_uploader("Arraste os arquivos .txt do PokerStars", type=["txt"], accept_multiple_files=True, key="drive_stars")
-    
-    str.markdown("---")
-    str.markdown("### 🟦 WPN (Winning Poker Network)")
-    arquivos_wpn = str.file_uploader("Arraste os arquivos .txt da WPN", type=["txt"], accept_multiple_files=True, key="drive_wpn")
-    
-    str.markdown("---")
-    str.markdown("### 🪙 CoinPoker")
-    arquivos_coin = str.file_uploader("Arraste os arquivos .txt do CoinPoker", type=["txt"], accept_multiple_files=True, key="drive_coin")
+        str.markdown("---")
+        str.markdown("### 🧡 PartyPoker")
+        arquivos_party = str.file_uploader("Arraste os arquivos .txt do PartyPoker", type=["txt"], accept_multiple_files=True, key="party_txt")
 
-    # Preparar o ZIP na memória
-    buffer_zip = io.BytesIO()
-    
-    with zipfile.ZipFile(buffer_zip, "w", zipfile.ZIP_DEFLATED) as arquivo_zip:
+        texto_final_unificado = ""
+        
         if arquivos_gg:
             texto_gg, qtd = processar_arquivos_gg(arquivos_gg, nick_gg)
-            if texto_gg:
-                arquivo_zip.writestr("GGPoker_convertido.txt", texto_gg)
-                arquivos_totais += qtd
-            
+            texto_final_unificado += texto_gg
+            arquivos_totais += qtd
+                
         if arquivos_party:
-            texto_party = ""
             for arq in arquivos_party:
                 conteudo = arq.read().decode("utf-8", errors="ignore")
-                texto_party += customizar_nicks_hh(conteudo, nick_party) + "\n\n"
+                texto_final_unificado += customizar_nicks_hh(conteudo, nick_party) + "\n\n"
                 arquivos_totais += 1
-            arquivo_zip.writestr("PartyPoker_convertido.txt", texto_party)
-            
-        if arquivos_stars:
-            texto_stars = ""
-            for arq in arquivos_stars:
-                texto_stars += arq.read().decode("utf-8", errors="ignore") + "\n\n"
-                arquivos_totais += 1
-            arquivo_zip.writestr("PokerStars.txt", texto_stars)
-            
-        if arquivos_wpn:
-            texto_wpn = ""
-            for arq in arquivos_wpn:
-                texto_wpn += arq.read().decode("utf-8", errors="ignore") + "\n\n"
-                arquivos_totais += 1
-            arquivo_zip.writestr("WPN.txt", texto_wpn)
-            
-        if arquivos_coin:
-            texto_coin = ""
-            for arq in arquivos_coin:
-                texto_coin += arq.read().decode("utf-8", errors="ignore") + "\n\n"
-                arquivos_totais += 1
-            arquivo_zip.writestr("CoinPoker.txt", texto_coin)
 
-    if arquivos_totais > 0:
-        str.markdown("---")
-        ano_mes = datetime.now().strftime("[%Y.%m]")
-        nome_limpo = nome_jogador.strip() if nome_jogador.strip() else "Jogador Sem Nome"
-        nome_zip_final = f"{ano_mes} {nome_limpo}.zip"
-        
-        str.success(f"📦 Pacote estruturado com sucesso! Total de {arquivos_totais} arquivos de mãos organizados.")
-        str.info(f"ℹ️ **Próximo passo:** Baixe o arquivo abaixo e coloque-o diretamente na sua pasta de **Database** no Google Drive!")
-        
-        buffer_zip.seek(0)
-        
-        str.download_button(
-            label=f"📥 Baixar Pacote: {nome_zip_final}",
-            data=buffer_zip,
-            file_name=nome_zip_final,
-            mime="application/zip",
-            use_container_width=True
-        )
+        if arquivos_totais > 0:
+            str.markdown("---")
+            str.success(f"🎉 Pronto! {arquivos_totais} arquivo(s) de mãos convertido(s) com sucesso!")
+            
+            str.download_button(
+                label="📥 Baixar Arquivo Convertido (.TXT)",
+                data=texto_final_unificado,
+                file_name="hands_convertidas.txt",
+                mime="text/plain",
+                use_container_width=True
+            )
+        else:
+            str.markdown("---")
+            str.info("💡 Insira os arquivos da GG ou Party acima para gerar o seu arquivo convertido.")
+
+    # LÓGICA MODO: ORGANIZAR PARA O DRIVE
     else:
+        str.markdown("### 🔴 GGPoker")
+        arquivos_gg = str.file_uploader("Arraste o seu arquivo .zip (ou .txt) da GGPoker", type=["txt", "zip"], accept_multiple_files=True, key="drive_gg")
+        
         str.markdown("---")
-        str.info("💡 Insira os arquivos das salas desejadas acima para gerar o pacote do Drive.")
+        str.markdown("### 🧡 PartyPoker")
+        arquivos_party = str.file_uploader("Arraste os arquivos .txt do PartyPoker", type=["txt"], accept_multiple_files=True, key="drive_party")
+        
+        str.markdown("---")
+        str.markdown("### ♠️ PokerStars")
+        arquivos_stars = str.file_uploader("Arraste os arquivos .txt do PokerStars", type=["txt"], accept_multiple_files=True, key="drive_stars")
+        
+        str.markdown("---")
+        str.markdown("### 🟦 WPN (Winning Poker Network)")
+        arquivos_wpn = str.file_uploader("Arraste os arquivos .txt da WPN", type=["txt"], accept_multiple_files=True, key="drive_wpn")
+        
+        str.markdown("---")
+        str.markdown("### 🪙 CoinPoker")
+        arquivos_coin = str.file_uploader("Arraste os arquivos .txt do CoinPoker", type=["txt"], accept_multiple_files=True, key="drive_coin")
+
+        buffer_zip = io.BytesIO()
+        
+        with zipfile.ZipFile(buffer_zip, "w", zipfile.ZIP_DEFLATED) as arquivo_zip:
+            if arquivos_gg:
+                texto_gg, qtd = processar_arquivos_gg(arquivos_gg, nick_gg)
+                if texto_gg:
+                    arquivo_zip.writestr("GGPoker_convertido.txt", texto_gg)
+                    arquivos_totais += qtd
+                
+            if arquivos_party:
+                texto_party = ""
+                for arq in arquivos_party:
+                    conteudo = arq.read().decode("utf-8", errors="ignore")
+                    texto_party += customizar_nicks_hh(conteudo, nick_party) + "\n\n"
+                    arquivos_totais += 1
+                arquivo_zip.writestr("PartyPoker_convertido.txt", texto_party)
+                
+            if arquivos_stars:
+                texto_stars = ""
+                for arq in arquivos_stars:
+                    texto_stars += arq.read().decode("utf-8", errors="ignore") + "\n\n"
+                    arquivos_totais += 1
+                arquivo_zip.writestr("PokerStars.txt", texto_stars)
+                
+            if arquivos_wpn:
+                texto_wpn = ""
+                for arq in arquivos_wpn:
+                    texto_wpn += arq.read().decode("utf-8", errors="ignore") + "\n\n"
+                    arquivos_totais += 1
+                arquivo_zip.writestr("WPN.txt", texto_wpn)
+                
+            if arquivos_coin:
+                texto_coin = ""
+                for arq in arquivos_coin:
+                    texto_coin += arq.read().decode("utf-8", errors="ignore") + "\n\n"
+                    arquivos_totais += 1
+                arquivo_zip.writestr("CoinPoker.txt", texto_coin)
+
+        if arquivos_totais > 0:
+            str.markdown("---")
+            ano_mes = datetime.now().strftime("[%Y.%m]")
+            nome_limpo = nome_jogador.strip() if nome_jogador.strip() else "Jogador Sem Nome"
+            nome_zip_final = f"{ano_mes} {nome_limpo}.zip"
+            
+            str.success(f"📦 Pacote estruturado com sucesso! Total de {arquivos_totais} arquivos de mãos organizados.")
+            str.info(f"ℹ️ **Próximo passo:** Baixe o arquivo abaixo e coloque-o diretamente na sua pasta de **Database** no Google Drive!")
+            
+            buffer_zip.seek(0)
+            
+            str.download_button(
+                label=f"📥 Baixar Pacote: {nome_zip_final}",
+                data=buffer_zip,
+                file_name=nome_zip_final,
+                mime="application/zip",
+                use_container_width=True
+            )
+        else:
+            str.markdown("---")
+            str.info("💡 Insira os arquivos das salas desejadas acima para gerar o pacote do Drive.")
+
+# --- BLOCO DE SALVAR NO RODAPÉ FINAL DA COLUNA DE CONFIGURAÇÕES ---
+with col_esquerda:
+    if nome_jogador or nick_gg or nick_party:
+        str.markdown("---")
+        with str.expander("💾 Salvar Configurações"):
+            link_salvar = f"https://trocarnick.streamlit.app/?nome={nome_jogador.replace(' ', '%20')}&gg={nick_gg}&party={nick_party}&modo={modo.replace(' ', '%20')}"
+            str.markdown("Adicione aos **Favoritos**:")
+            str.code(link_salvar, language="text")
