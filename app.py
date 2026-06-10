@@ -54,12 +54,12 @@ arquivos_totais = 0
 # --- LÓGICA MODO: APENAS TROCAR O NICK ---
 if modo == "Apenas trocar o nick":
     
-    # Exibe apenas GG e Party
-    str.markdown("### 🔥 GGPoker (Arquivos serão unidos em um único TXT)")
+    # Exibe apenas GG e Party com estilização visual de símbolos
+    str.markdown("### 🔴 GGPoker `[GG]` (Unificar em arquivo único)")
     arquivos_gg = str.file_uploader("Arraste os arquivos .txt da GGPOKER", type=["txt"], accept_multiple_files=True, key="gg_txt")
     
     str.markdown("---")
-    str.markdown("### 🎯 PartyPoker (Arquivos serão unidos em um único TXT)")
+    str.markdown("### 🧡 PartyPoker `[partypoker]` (Unificar em arquivo único)")
     arquivos_party = str.file_uploader("Arraste os arquivos .txt do PARTYPOKER", type=["txt"], accept_multiple_files=True, key="party_txt")
 
     texto_final_unificado = ""
@@ -93,24 +93,24 @@ if modo == "Apenas trocar o nick":
 
 # --- LÓGICA MODO: ORGANIZAR PARA O DRIVE ---
 else:
-    # Exibe todas as 5 salas
-    str.markdown("### 🔥 GGPoker")
+    # Exibe todas as 5 salas com os símbolos característicos
+    str.markdown("### 🔴 GGPoker `[GG]`")
     arquivos_gg = str.file_uploader("Arraste os arquivos .txt da GGPOKER", type=["txt"], accept_multiple_files=True, key="drive_gg")
     
     str.markdown("---")
-    str.markdown("### 🎯 PartyPoker")
+    str.markdown("### 🧡 PartyPoker `[partypoker]`")
     arquivos_party = str.file_uploader("Arraste os arquivos .txt do PARTYPOKER", type=["txt"], accept_multiple_files=True, key="drive_party")
     
     str.markdown("---")
-    str.markdown("### ⭐ PokerStars (Apenas envelopar)")
+    str.markdown("### ♠️ PokerStars `[★]` (Apenas envelopar)")
     arquivos_stars = str.file_uploader("Arraste os arquivos .txt do POKERSTARS", type=["txt"], accept_multiple_files=True, key="drive_stars")
     
     str.markdown("---")
-    str.markdown("### 🟥 WPN (Apenas envelopar)")
+    str.markdown("### 🟦 WPN `[Winning Poker Network]` (Apenas envelopar)")
     arquivos_wpn = str.file_uploader("Arraste os arquivos .txt da WPN", type=["txt"], accept_multiple_files=True, key="drive_wpn")
     
     str.markdown("---")
-    str.markdown("### 🪙 CoinPoker (Apenas envelopar)")
+    str.markdown("### 🪙 CoinPoker `[CHP]` (Apenas envelopar)")
     arquivos_coin = str.file_uploader("Arraste os arquivos .txt do COINPOKER", type=["txt"], accept_multiple_files=True, key="drive_coin")
 
     # Preparar o ZIP na memória
@@ -149,33 +149,4 @@ else:
             for arq in arquivos_wpn:
                 texto_wpn += arq.read().decode("utf-8", errors="ignore") + "\n\n"
                 arquivos_totais += 1
-            arquivo_zip.writestr("WPN.txt", texto_wpn)
-            
-        # 5. Processar CoinPoker (Direto)
-        if arquivos_coin:
-            texto_coin = ""
-            for arq in arquivos_coin:
-                texto_coin += arq.read().decode("utf-8", errors="ignore") + "\n\n"
-                arquivos_totais += 1
-            arquivo_zip.writestr("CoinPoker.txt", texto_coin)
-
-    if arquivos_totais > 0:
-        str.markdown("---")
-        # Formata o nome do arquivo ZIP: [Ano.Mês] Nome do Aluno.zip
-        ano_mes = datetime.now().strftime("[%Y.%m]")
-        nome_limpo = nome_aluno.strip() if nome_aluno.strip() else "Aluno Sem Nome"
-        nome_zip_final = f"{ano_mes} {nome_limpo}.zip"
-        
-        str.success(f"📦 Pacote estruturado com sucesso! Total de {arquivos_totais} arquivos organizados.")
-        buffer_zip.seek(0)
-        
-        str.download_button(
-            label=f"📥 Baixar Pacote: {nome_zip_final}",
-            data=buffer_zip,
-            file_name=nome_zip_final,
-            mime="application/zip",
-            use_container_width=True
-        )
-    else:
-        str.markdown("---")
-        str.info("💡 Insira os arquivos das salas desejadas acima para gerar o pacote do Drive.")
+            arquivo
