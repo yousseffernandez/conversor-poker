@@ -2,6 +2,7 @@ import streamlit as str
 import re
 import io
 import zipfile
+from datetime import datetime
 
 # Configuração da página
 str.set_page_config(page_title="HH Nick Changer", page_icon="🃏", layout="centered")
@@ -11,95 +12,170 @@ def customizar_nicks_hh(texto_hh, novo_nick):
     """Substitui a palavra 'Hero' pelo nick configurado (case-insensitive)."""
     if not novo_nick:
         return texto_hh
-    # Substituição exata de "Hero" isolado
     texto_atualizado = re.sub(r'\bHero\b', novo_nick, texto_hh, flags=re.IGNORECASE)
     return texto_atualizado
 
-# --- CAPTURA DE NICKS VIA URL (SALVAR CONFIGURAÇÃO) ---
-# Se o link tiver ?gg=MeuNick, ele usa. Se não, deixa o padrão "Hero" ou vazio.
+# --- CAPTURA DE CONFIGURAÇÕES VIA URL ---
 query_params = str.query_params
+default_nome = query_params.get("nome", "")
 default_gg = query_params.get("gg", "")
 default_party = query_params.get("party", "")
+default_modo = query_params.get("modo", "Apenas trocar o nick")
 
 # --- INTERFACE INTERATIVA (STREAMLIT) ---
 str.title("🃏 Conversor de Hand History por Plataforma")
-
 str.markdown("---")
 
-# 1. Configuração dos Nicks na Barra Lateral
-str.sidebar.header("⚙️ Configuração de Nicks")
+# 1. Configuração na Barra Lateral
+str.sidebar.header("⚙️ Configurações Gerais")
+nome_aluno = str.sidebar.text_input("Seu Nome (Aluno)", value=default_nome, placeholder="Ex: Ramon Sfalsin")
 nick_gg = str.sidebar.text_input("Seu Nick no GGPoker", value=default_gg, placeholder="Digite seu nick da GG")
 nick_party = str.sidebar.text_input("Seu Nick no PartyPoker", value=default_party, placeholder="Digite seu nick da Party")
 
-# Link dinâmico para o usuário salvar nos favoritos
 str.sidebar.markdown("---")
-str.sidebar.markdown("### 💾 Salvar meus Nicks")
-if nick_gg or nick_party:
-    link_salvar = f"https://trocarnick.streamlit.app/?gg={nick_gg}&party={nick_party}"
-    str.sidebar.markdown("Para salvar estes nicks, adicione o link abaixo aos seus **Favoritos** do navegador:")
+str.sidebar.header("🎯 Modo de Operação")
+modo = str.sidebar.radio(
+    "O que deseja fazer?",
+    ["Apenas trocar o nick", "Organizar para o Drive"],
+    index=0 if default_modo == "Apenas trocar o nick" else 1
+)
+
+# Link dinâmico para salvar nos favoritos
+str.sidebar.markdown("---")
+str.sidebar.markdown("### 💾 Salvar minhas Configurações")
+if nome_aluno or nick_gg or nick_party:
+    link_salvar = f"https://trocarnick.streamlit.app/?nome={nome_aluno.replace(' ', '%20')}&gg={nick_gg}&party={nick_party}&modo={modo.replace(' ', '%20')}"
+    str.sidebar.markdown("Adicione o link abaixo aos seus **Favoritos** para não precisar digitar de novo:")
     str.sidebar.code(link_salvar, language="text")
-else:
-    str.sidebar.info("Digite os nicks acima para gerar o seu link personalizado.")
 
-# Criar um único arquivo ZIP na memória para a entrega final
-buffer_zip = io.BytesIO()
-arquivos_totais_convertidos = 0
+# Variáveis de controle de fluxo de arquivos
+arquivos_totais = 0
 
-# --- PROCESSAR OS ARQUIVOS E FECHAR O ZIP ---
-with zipfile.ZipFile(buffer_zip, "w", zipfile.ZIP_DEFLATED) as arquivo_zip:
+# --- LÓGICA MODO: APENAS TROCAR O NICK ---
+if modo == "Apenas trocar o nick":
+    
+    # Exibe apenas GG e Party
+    str.markdown("### 🔥 GGPoker (Arquivos serão unidos em um único TXT)")
+    arquivos_gg = str.file_uploader("Arraste os arquivos .txt da GGPOKER", type=["txt"], accept_multiple_files=True, key="gg_txt")
+    
+    str.markdown("---")
+    str.markdown("### 🎯 PartyPoker (Arquivos serão unidos em um único TXT)")
+    arquivos_party = str.file_uploader("Arraste os arquivos .txt do PARTYPOKER", type=["txt"], accept_multiple_files=True, key=party_txt)
 
-    # --- SEÇÃO GGPOKER (CONSOLIDADA) ---
-    str.markdown("### 🔥 GGPoker (Todos os arquivos serão unidos em apenas 1)")
-    arquivos_gg = str.file_uploader(
-        "Arraste aqui os arquivos .txt da GGPOKER", 
-        type=["txt"], 
-        accept_multiple_files=True,
-        key="uploader_gg"
-    )
+    texto_final_unificado = ""
     
     if arquivos_gg:
-        texto_gg_consolidado = ""
-        for arquivo in arquivos_gg:
-            conteudo = arquivo.read().decode("utf-8", errors="ignore")
-            texto_convertido = customizar_nicks_hh(conteudo, nick_gg)
-            texto_gg_consolidado += texto_convertido + "\n\n"
-            arquivos_totais_convertidos += 1
+        for arq in arquivos_gg:
+            conteudo = arq.read().decode("utf-8", errors="ignore")
+            texto_final_unificado += customizar_nicks_hh(conteudo, nick_gg) + "\n\n"
+            arquivos_totais += 1
             
-        arquivo_zip.writestr("GG_COMPLETO_convertido.txt", texto_gg_consolidado)
-        str.success(f"📦 {len(arquivos_gg)} arquivos da GG foram unidos com sucesso em um único arquivo!")
-
-    str.markdown("---")
-
-    # --- SEÇÃO PARTYPOKER (MANTIDO INDIVIDUAL) ---
-    str.markdown("### 🎯 PartyPoker")
-    arquivos_party = str.file_uploader(
-        "Arraste aqui os arquivos .txt do PARTYPOKER", 
-        type=["txt"], 
-        accept_multiple_files=True,
-        key="uploader_party"
-    )
-    
     if arquivos_party:
-        for arquivo in arquivos_party:
-            conteudo = arquivo.read().decode("utf-8", errors="ignore")
-            texto_convertido = customizar_nicks_hh(conteudo, nick_party)
-            arquivo_zip.writestr(f"Party_convertido_{arquivo.name}", texto_convertido)
-            arquivos_totais_convertidos += 1
-        str.success(f"🔹 {len(arquivos_party)} arquivos do PartyPoker processados.")
+        for arq in arquivos_party:
+            conteudo = arq.read().decode("utf-8", errors="ignore")
+            texto_final_unificado += customizar_nicks_hh(conteudo, nick_party) + "\n\n"
+            arquivos_totais += 1
 
-# --- EXIBIR O BOTÃO DE DOWNLOAD ---
-if arquivos_totais_convertidos > 0:
-    str.markdown("---")
-    str.success(f"🎉 Processamento concluído de {arquivos_totais_convertidos} arquivos!")
-    buffer_zip.seek(0)
-    
-    str.download_button(
-        label="📥 Clique aqui para Baixar o Pacote Convertido (.ZIP)",
-        data=buffer_zip,
-        file_name="hands_convertidas_filtros.zip",
-        mime="application/zip",
-        use_container_width=True
-    )
+    if arquivos_totais > 0:
+        str.markdown("---")
+        str.success(f"🎉 Pronto! {arquivos_totais} arquivo(s) convertido(s) com sucesso!")
+        
+        str.download_button(
+            label="📥 Baixar Arquivo Convertido (.TXT)",
+            data=texto_final_unificado,
+            file_name="hands_convertidas.txt",
+            mime="text/plain",
+            use_container_width=True
+        )
+    else:
+        str.markdown("---")
+        str.info("💡 Insira os arquivos da GG ou Party acima para gerar o seu arquivo convertido.")
+
+# --- LÓGICA MODO: ORGANIZAR PARA O DRIVE ---
 else:
+    # Exibe todas as 5 salas
+    str.markdown("### 🔥 GGPoker")
+    arquivos_gg = str.file_uploader("Arraste os arquivos .txt da GGPOKER", type=["txt"], accept_multiple_files=True, key="drive_gg")
+    
     str.markdown("---")
-    str.info("💡 Insira os seus arquivos num dos campos acima para gerar o botão de download.")
+    str.markdown("### 🎯 PartyPoker")
+    arquivos_party = str.file_uploader("Arraste os arquivos .txt do PARTYPOKER", type=["txt"], accept_multiple_files=True, key="drive_party")
+    
+    str.markdown("---")
+    str.markdown("### ⭐ PokerStars (Apenas envelopar)")
+    arquivos_stars = str.file_uploader("Arraste os arquivos .txt do POKERSTARS", type=["txt"], accept_multiple_files=True, key="drive_stars")
+    
+    str.markdown("---")
+    str.markdown("### 🟥 WPN (Apenas envelopar)")
+    arquivos_wpn = str.file_uploader("Arraste os arquivos .txt da WPN", type=["txt"], accept_multiple_files=True, key="drive_wpn")
+    
+    str.markdown("---")
+    str.markdown("### 🪙 CoinPoker (Apenas envelopar)")
+    arquivos_coin = str.file_uploader("Arraste os arquivos .txt do COINPOKER", type=["txt"], accept_multiple_files=True, key="drive_coin")
+
+    # Preparar o ZIP na memória
+    buffer_zip = io.BytesIO()
+    
+    with zipfile.ZipFile(buffer_zip, "w", zipfile.ZIP_DEFLATED) as arquivo_zip:
+        # 1. Processar GG
+        if arquivos_gg:
+            texto_gg = ""
+            for arq in arquivos_gg:
+                conteudo = arq.read().decode("utf-8", errors="ignore")
+                texto_gg += customizar_nicks_hh(conteudo, nick_gg) + "\n\n"
+                arquivos_totais += 1
+            arquivo_zip.writestr("GGPoker_convertido.txt", texto_gg)
+            
+        # 2. Processar Party
+        if arquivos_party:
+            texto_party = ""
+            for arq in arquivos_party:
+                conteudo = arq.read().decode("utf-8", errors="ignore")
+                texto_party += customizar_nicks_hh(conteudo, nick_party) + "\n\n"
+                arquivos_totais += 1
+            arquivo_zip.writestr("PartyPoker_convertido.txt", texto_party)
+            
+        # 3. Processar PokerStars (Direto)
+        if arquivos_stars:
+            texto_stars = ""
+            for arq in arquivos_stars:
+                texto_stars += arq.read().decode("utf-8", errors="ignore") + "\n\n"
+                arquivos_totais += 1
+            arquivo_zip.writestr("PokerStars.txt", texto_stars)
+            
+        # 4. Processar WPN (Direto)
+        if arquivos_wpn:
+            texto_wpn = ""
+            for arq in arquivos_wpn:
+                texto_wpn += arq.read().decode("utf-8", errors="ignore") + "\n\n"
+                arquivos_totais += 1
+            arquivo_zip.writestr("WPN.txt", texto_wpn)
+            
+        # 5. Processar CoinPoker (Direto)
+        if arquivos_coin:
+            texto_coin = ""
+            for arq in arquivos_coin:
+                texto_coin += arq.read().decode("utf-8", errors="ignore") + "\n\n"
+                arquivos_totais += 1
+            arquivo_zip.writestr("CoinPoker.txt", texto_coin)
+
+    if arquivos_totais > 0:
+        str.markdown("---")
+        # Formata o nome do arquivo ZIP: [Ano.Mês] Nome do Aluno.zip
+        ano_mes = datetime.now().strftime("[%Y.%m]")
+        nome_limpo = nome_aluno.strip() if nome_aluno.strip() else "Aluno Sem Nome"
+        nome_zip_final = f"{ano_mes} {nome_limpo}.zip"
+        
+        str.success(f"📦 Pacote estruturado com sucesso! Total de {arquivos_totais} arquivos organizados.")
+        buffer_zip.seek(0)
+        
+        str.download_button(
+            label=f"📥 Baixar Pacote: {nome_zip_final}",
+            data=buffer_zip,
+            file_name=nome_zip_final,
+            mime="application/zip",
+            use_container_width=True
+        )
+    else:
+        str.markdown("---")
+        str.info("💡 Insira os arquivos das salas desejadas acima para gerar o pacote do Drive.")
