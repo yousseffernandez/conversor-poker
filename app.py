@@ -43,24 +43,10 @@ def eh_sumario_stars_ou_wpn(nome_arquivo):
         return True
     return False
 
-# --- FUNÇÃO GENÉRICA PARA PROCESSAR QUALQUER SALA (SUPORTA TXT E ZIP) ---
-def processar_arquivos_sala(arquivos_upados, nome_completo="", nick_sala="", periodo_ref="", aplicar_filtro_sumario=False):
+# --- FUNÇÃO GENÉRICA PARA PROCESSAR QUALQUER SALA (SEM CABEÇALHO EXTRA) ---
+def processar_arquivos_sala(arquivos_upados, nick_sala="", aplicar_filtro_sumario=False):
     texto_acumulado = ""
     contagem = 0
-    
-    nome_player = nome_completo.strip() if nome_completo.strip() else "Não Informado"
-    nick_player = nick_sala.strip() if nick_sala.strip() else "Não Requerido/Em Branco"
-    data_ref = periodo_ref if periodo_ref else "Não Identificado"
-    
-    cabecalho_referencia = (
-        "==================================================\n"
-        " REFERÊNCIA DE DATABASE - POKERLAB \n"
-        f" PERÍODO DE REFERÊNCIA: {data_ref}\n"
-        f" JOGADOR: {nome_player}\n"
-        f" NICK DECLARADO PARA ESTA SALA: {nick_player}\n"
-        f" PROCESSADO EM: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n"
-        "==================================================\n\n"
-    )
     
     for arq in arquivos_upados:
         name_arq = arq.name.lower()
@@ -95,9 +81,6 @@ def processar_arquivos_sala(arquivos_upados, nome_completo="", nick_sala="", per
             texto_acumulado += conteudo + "\n\n"
             contagem += 1
             
-    if contagem > 0:
-        texto_acumulado = cabecalho_referencia + texto_acumulado
-        
     return texto_acumulado, contagem
 
 # --- CAPTURA DE CONFIGURAÇÕES VIA URL ---
@@ -126,14 +109,12 @@ with col_esquerda:
     lista_nomes_meses = list(MESES_OPCOES.keys())
     idx_padrao = lista_nomes_meses.index(mes_padrao_nome)
     
-    # Pergunta clara de confirmação para o aluno
+    # Pergunta de confirmação para o aluno
     eh_mes_anterior = st.checkbox("Este arquivo é referente ao mês anterior?", value=True)
     
     if eh_mes_anterior:
-        # Padrão inteligente ativo
         prefixo_data = f"[{ano_padrao_num}.{MESES_OPCOES[mes_padrao_nome]}]"
     else:
-        # Se não for, libera as caixinhas para ele escolher
         mes_selecionado = st.selectbox("Selecione o mês das mãos:", lista_nomes_meses, index=idx_padrao)
         ano_selecionado = st.number_input("Ano correspondente:", min_value=ano_padrao_num - 5, max_value=ano_padrao_num + 1, value=ano_padrao_num, step=1)
         prefixo_data = f"[{ano_selecionado}.{MESES_OPCOES[mes_selecionado]}]"
@@ -162,11 +143,11 @@ with col_direita:
 
         texto_final_unificado = ""
         if arquivos_gg:
-            texto_gg, qtd = processar_arquivos_sala(arquivos_gg, nome_completo=nome_jogador, nick_sala=nick_gg, periodo_ref=prefixo_data)
+            texto_gg, qtd = processar_arquivos_sala(arquivos_gg, nick_sala=nick_gg)
             texto_final_unificado += texto_gg
             arquivos_totais += qtd
         if arquivos_party:
-            texto_party, qtd = processar_arquivos_sala(arquivos_party, nome_completo=nome_jogador, nick_sala=nick_party, periodo_ref=prefixo_data)
+            texto_party, qtd = processar_arquivos_sala(arquivos_party, nick_sala=nick_party)
             texto_final_unificado += texto_party
             arquivos_totais += qtd
 
@@ -195,23 +176,23 @@ with col_direita:
         with zipfile.ZipFile(buffer_zip, "w", zipfile.ZIP_DEFLATED) as arquivo_zip:
             
             if arquivos_gg:
-                texto_gg, qtd = processar_arquivos_sala(arquivos_gg, nome_completo=nome_jogador, nick_sala=nick_gg, periodo_ref=prefixo_data)
+                texto_gg, qtd = processar_arquivos_sala(arquivos_gg, nick_sala=nick_gg)
                 if texto_gg: arquivo_zip.writestr("GGPoker.txt", texto_gg); arquivos_totais += qtd
                     
             if arquivos_party:
-                texto_party, qtd = processar_arquivos_sala(arquivos_party, nome_completo=nome_jogador, nick_sala=nick_party, periodo_ref=prefixo_data)
+                texto_party, qtd = processar_arquivos_sala(arquivos_party, nick_sala=nick_party)
                 if texto_party: arquivo_zip.writestr("PartyPoker.txt", texto_party); arquivos_totais += qtd
             
             if arquivos_stars:
-                texto_stars, qtd = processar_arquivos_sala(arquivos_stars, nome_completo=nome_jogador, periodo_ref=prefixo_data, aplicar_filtro_sumario=True)
+                texto_stars, qtd = processar_arquivos_sala(arquivos_stars, aplicar_filtro_sumario=True)
                 if texto_stars: arquivo_zip.writestr("PokerStars.txt", texto_stars); arquivos_totais += qtd
             
-            if archivos_wpn := arquivos_wpn:
-                texto_wpn, qtd = processar_arquivos_sala(arquivos_wpn, nome_completo=nome_jogador, periodo_ref=prefixo_data, aplicar_filtro_sumario=True)
+            if arquivos_wpn:
+                texto_wpn, qtd = processar_arquivos_sala(arquivos_wpn, aplicar_filtro_sumario=True)
                 if texto_wpn: arquivo_zip.writestr("WPN.txt", texto_wpn); arquivos_totais += qtd
             
             if arquivos_coin:
-                texto_coin, qtd = processar_arquivos_sala(arquivos_coin, nome_completo=nome_jogador, periodo_ref=prefixo_data)
+                texto_coin, qtd = processar_arquivos_sala(arquivos_coin)
                 if texto_coin: arquivo_zip.writestr("CoinPoker.txt", texto_coin); arquivos_totais += qtd
 
         if arquivos_totais > 0:
@@ -226,7 +207,4 @@ with col_direita:
 with col_esquerda:
     if nome_jogador or nick_gg or nick_party:
         st.markdown("---")
-        with st.expander("💾 Salvar Minhas Configurações"):
-            link_salvar = f"https://trocartick.streamlit.app/?nome={nome_jogador.replace(' ', '%20')}&gg={nick_gg}&party={nick_party}&modo={modo.replace(' ', '%20')}"
-            st.markdown("Adicione aos **Favoritos**:")
-            st.code(link_salvar, language="text")
+        with st.expander("
