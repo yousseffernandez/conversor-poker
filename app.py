@@ -48,7 +48,7 @@ def processar_arquivos_sala(arquivos_upados, nome_completo="", nick_sala="", per
     texto_acumulado = ""
     contagem = 0
     
-    # Monta um cabeçalho padrão de referência para auditoria do time (INCLUINDO O PERÍODO DA DATA)
+    # Monta um cabeçalho padrão de referência para auditoria do time
     nome_player = nome_completo.strip() if nome_completo.strip() else "Não Informado"
     nick_player = nick_sala.strip() if nick_sala.strip() else "Não Requerido/Em Branco"
     data_ref = periodo_ref if periodo_ref else "Não Identificado"
@@ -126,17 +126,28 @@ with col_esquerda:
     st.markdown("---")
     st.subheader("📅 Período da Database")
     
-    # Calcula os valores padrão automáticos baseados na data atual
+    # 1. Calcula o mês anterior e ano padrão automaticamente
     mes_padrao_nome, ano_padrao_num = obter_mes_anterior_padrao()
     
+    # 2. Transforma as chaves do dicionário numa lista para encontrar a posição do mês padrão
     lista_nomes_meses = list(MESES_OPCOES.keys())
     idx_padrao = lista_nomes_meses.index(mes_padrao_nome)
     
-    # Inputs de seleção do período
-    mes_selecionado = st.selectbox("Selecione o mês correspondente:", lista_nomes_meses, index=idx_padrao)
-    ano_selecionado = st.number_input("Ano correspondente:", min_value=ano_padrao_num - 2, max_value=ano_padrao_num + 1, value=ano_padrao_num, step=1)
+    # 3. CRIAÇÃO DOS CAMPOS SELECIONÁVEIS (O aluno escolhe se quiser mudar)
+    mes_selecionado = st.selectbox(
+        "Selecione o mês correspondente:", 
+        lista_nomes_meses, 
+        index=idx_padrao
+    )
+    ano_selecionado = st.number_input(
+        "Ano correspondente:", 
+        min_value=ano_padrao_num - 5, 
+        max_value=ano_padrao_num + 1, 
+        value=ano_padrao_num, 
+        step=1
+    )
     
-    # Monta a tag estruturada de data (Ex: [2026.05])
+    # 4. Junta as seleções atuais do aluno para criar o prefixo (ex: [2026.05])
     digito_mes = MESES_OPCOES[mes_selecionado]
     prefixo_data = f"[{ano_selecionado}.{digito_mes}]"
     
