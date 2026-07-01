@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 # --- FUNÇÃO PARA CALCULAR O MÊS ANTERIOR AUTOMATICAMENTE ---
-def obter_ano_mes_retroativo():
+def obtener_ano_mes_retroativo():
     hoje = datetime.now()
     ano = hoje.year
     mes = hoje.month
@@ -32,24 +32,26 @@ def customizar_nicks_hh(texto_hh, novo_nick):
         return texto_hh
     return re.sub(r'\bHero\b', novo_nick, texto_hh, flags=re.IGNORECASE)
 
-# --- FUNÇÃO PARA PROCESSAR INPUTS DA GG ---
+# --- FUNÇÃO ISOLADA PARA FILTRAR SUMÁRIOS APENAS DAS SALAS QUE OS GERAM ---
+def eh_sumario_stars_ou_wpn(nome_arquivo):
+    nome_lower = nome_arquivo.lower()
+    # Filtra apenas se for um arquivo de sumário explícito do PokerStars ou WPN
+    if nome_lower.endswith("summary.txt") or "summary" in nome_lower:
+        return True
+    return False
+
+# --- FUNÇÃO PARA PROCESSAR INPUTS DA GG (SEM RISCO DE FILTRAR MÃOS VÁLIDAS) ---
 def processar_arquivos_gg(arquivos_upados, nick):
     texto_acumulado = ""
     contagem = 0
     for arq in arquivos_upados:
         name_arq = arq.name.lower()
         
-        if "summary" in name_arq:
-            continue
-            
         if name_arq.endswith(".zip"):
             try:
                 with zipfile.ZipFile(arq) as z:
                     for filename in z.namelist():
-                        filename_lower = filename.lower()
-                        if "summary" in filename_lower:
-                            continue
-                        if filename_lower.endswith(".txt"):
+                        if filename.lower().endswith(".txt"):
                             with z.open(filename) as f:
                                 texto_acumulado += customizar_nicks_hh(f.read().decode("utf-8", errors="ignore"), nick) + "\n\n"
                                 contagem += 1
@@ -105,14 +107,12 @@ with col_direita:
         )
 
         texto_final_unificado = ""
-        if archivos_gg := arquivos_gg:
+        if arquivos_gg:
             texto_gg, qtd = processar_arquivos_gg(arquivos_gg, nick_gg)
             texto_final_unificado += texto_gg
             arquivos_totais += qtd
         if arquivos_party:
             for arq in arquivos_party:
-                if "summary" in arq.name.lower():
-                    continue
                 texto_final_unificado += customizar_nicks_hh(arq.read().decode("utf-8", errors="ignore"), nick_party) + "\n\n"
                 arquivos_totais += 1
 
@@ -165,22 +165,27 @@ with col_direita:
                     arquivo_zip.writestr("GGPoker.txt", texto_gg)
                     arquivos_totais += qtd
             if arquivos_party:
-                texto_party = "".join([customizar_nicks_hh(arq.read().decode("utf-8", errors="ignore"), nick_party) + "\n\n" for arq in arquivos_party if "summary" not in arq.name.lower()])
+                texto_party = "".join([customizar_nicks_hh(arq.read().decode("utf-8", errors="ignore"), nick_party) + "\n\n" for arq in arquivos_party])
                 if texto_party: 
                     arquivo_zip.writestr("PartyPoker.txt", texto_party)
                     arquivos_totais += len(arquivos_party)
+            
+            # AQUI: Aplica o filtro de sumário APENAS no PokerStars
             if arquivos_stars:
-                texto_stars = "".join([arq.read().decode("utf-8", errors="ignore") + "\n\n" for arq in arquivos_stars if "summary" not in arq.name.lower()])
+                texto_stars = "".join([arq.read().decode("utf-8", errors="ignore") + "\n\n" for arq in arquivos_stars if not eh_sumario_stars_ou_wpn(arq.name)])
                 if texto_stars: 
                     arquivo_zip.writestr("PokerStars.txt", texto_stars)
-                    arquivos_totais += len(arquivos_stars)
+                    arquivos_totais += len([arq for arq in arquivos_stars if not eh_sumario_stars_ou_wpn(arq.name)])
+            
+            # AQUI: Aplica o filtro de sumário APENAS na WPN
             if arquivos_wpn:
-                texto_wpn = "".join([arq.read().decode("utf-8", errors="ignore") + "\n\n" for arq in arquivos_wpn if "summary" not in arq.name.lower()])
+                texto_wpn = "".join([arq.read().decode("utf-8", errors="ignore") + "\n\n" for arq in arquivos_wpn if not eh_sumario_stars_ou_wpn(arq.name)])
                 if texto_wpn: 
                     arquivo_zip.writestr("WPN.txt", texto_wpn)
-                    arquivos_totais += len(arquivos_wpn)
+                    arquivos_totais += len([arq for arq in arquivos_wpn if not eh_sumario_stars_ou_wpn(arq.name)])
+            
             if arquivos_coin:
-                texto_coin = "".join([arq.read().decode("utf-8", errors="ignore") + "\n\n" for arq in arquivos_coin if "summary" not in arq.name.lower()])
+                texto_coin = "".join([arq.read().decode("utf-8", errors="ignore") + "\n\n" for arq in arquivos_coin])
                 if texto_coin: 
                     arquivo_zip.writestr("CoinPoker.txt", texto_coin)
                     arquivos_totais += len(arquivos_coin)
@@ -188,10 +193,10 @@ with col_direita:
         if arquivos_totais > 0:
             st.markdown("---")
             
-            prefixo_data = obter_ano_mes_retroativo()
+            prefixo_data = obtener_ano_mes_retroativo()
             nome_zip_final = f"{prefixo_data} {nome_jogador.strip() if nome_jogador.strip() else 'Jogador Sem Nome'}.zip"
             
-            st.success(f"📦 Pacote estruturado com sucesso! Total de {arquivos_totais} arquivos válidos (arquivos 'summary' ignorados).")
+            st.success(f"📦 Pacote estruturado com sucesso! Total de {arquivos_totais} arquivos de mãos processados.")
             st.info("ℹ️ **Próximo passo:** Baixe o arquivo abaixo e coloque-o na sua pasta de Database no Google Drive!")
             buffer_zip.seek(0)
             st.download_button(
