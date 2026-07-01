@@ -155,7 +155,7 @@ with col_direita:
 
     if modo == "Apenas trocar o nick":
         st.markdown("### 🔴 GGPoker")
-        arquivos_gg = st.file_uploader("Arraste sua (pasta) ou (.txt) ou (.zip) da GGPoker", type=["txt", "zip"], accept_multiple_files=True, key="gg_txt")
+        arquivos_gg = st.file_uploader("Arraste sua pasta do (PokerCraft .zip) da GGPoker", type=["txt", "zip"], accept_multiple_files=True, key="gg_txt")
         st.markdown("---")
         st.markdown("### 🧡 PartyPoker")
         arquivos_party = st.file_uploader("Arraste sua (pasta) ou (.txt) ou (.zip) do PartyPoker", type=["txt", "zip"], accept_multiple_files=True, key="party_txt")
@@ -177,7 +177,7 @@ with col_direita:
 
     else:
         st.markdown("### 🔴 GGPoker")
-        arquivos_gg = st.file_uploader("Arraste sua (pasta) ou (.txt) ou (.zip) da GGPoker", type=["txt", "zip"], accept_multiple_files=True, key="drive_gg")
+        arquivos_gg = st.file_uploader("Arraste sua pasta do (PokerCraft .zip) da GGPoker", type=["txt", "zip"], accept_multiple_files=True, key="drive_gg")
         st.markdown("---")
         st.markdown("### 🧡 PartyPoker")
         arquivos_party = st.file_uploader("Arraste sua (pasta) ou (.txt) ou (.zip) do PartyPoker", type=["txt", "zip"], accept_multiple_files=True, key="drive_party")
