@@ -44,9 +44,24 @@ def eh_sumario_stars_ou_wpn(nome_arquivo):
     return False
 
 # --- FUNÇÃO GENÉRICA PARA PROCESSAR QUALQUER SALA (SUPORTA TXT E ZIP) ---
-def processar_arquivos_sala(arquivos_upados, nick=None, aplicar_filtro_sumario=False):
+def processar_arquivos_sala(arquivos_upados, nome_completo="", nick_sala="", periodo_ref="", aplicar_filtro_sumario=False):
     texto_acumulado = ""
     contagem = 0
+    
+    # Monta um cabeçalho padrão de referência para auditoria do time (INCLUINDO O PERÍODO DA DATA)
+    nome_player = nome_completo.strip() if nome_completo.strip() else "Não Informado"
+    nick_player = nick_sala.strip() if nick_sala.strip() else "Não Requerido/Em Branco"
+    data_ref = periodo_ref if periodo_ref else "Não Identificado"
+    
+    cabecalho_referencia = (
+        "==================================================\n"
+        " REFERÊNCIA DE DATABASE - POKERLAB \n"
+        f" PERÍODO DE REFERÊNCIA: {data_ref}\n"
+        f" JOGADOR: {nome_player}\n"
+        f" NICK DECLARADO PARA ESTA SALA: {nick_player}\n"
+        f" PROCESSADO EM: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n"
+        "==================================================\n\n"
+    )
     
     for arq in arquivos_upados:
         name_arq = arq.name.lower()
@@ -56,7 +71,6 @@ def processar_arquivos_sala(arquivos_upados, nick=None, aplicar_filtro_sumario=F
             try:
                 with zipfile.ZipFile(arq) as z:
                     for filename in z.namelist():
-                        # Pula arquivos de sistema ou pastas vazias dentro do zip
                         if filename.startswith("__MACOSX") or filename.endswith("/"):
                             continue
                         
@@ -66,8 +80,8 @@ def processar_arquivos_sala(arquivos_upados, nick=None, aplicar_filtro_sumario=F
                             
                             with z.open(filename) as f:
                                 conteudo = f.read().decode("utf-8", errors="ignore")
-                                if nick:
-                                    conteudo = customizar_nicks_hh(conteudo, nick)
+                                if nick_sala.strip():
+                                    conteudo = customizar_nicks_hh(conteudo, nick_sala)
                                 texto_acumulado += conteudo + "\n\n"
                                 contagem += 1
             except Exception:
@@ -79,11 +93,15 @@ def processar_arquivos_sala(arquivos_upados, nick=None, aplicar_filtro_sumario=F
                 continue
                 
             conteudo = arq.read().decode("utf-8", errors="ignore")
-            if nick:
-                conteudo = customizar_nicks_hh(conteudo, nick)
+            if nick_sala.strip():
+                conteudo = customizar_nicks_hh(conteudo, nick_sala)
             texto_acumulado += conteudo + "\n\n"
             contagem += 1
             
+    # Se houveram arquivos processados, aplica o cabeçalho no topo do texto acumulado
+    if contagem > 0:
+        texto_acumulado = cabecalho_referencia + texto_acumulado
+        
     return texto_acumulado, contagem
 
 # --- CAPTURA DE CONFIGURAÇÕES VIA URL (MEMÓRIA DOS FAVORITOS) ---
@@ -149,11 +167,11 @@ with col_direita:
 
         texto_final_unificado = ""
         if arquivos_gg:
-            texto_gg, qtd = processar_arquivos_sala(arquivos_gg, nick=nick_gg)
+            texto_gg, qtd = processar_arquivos_sala(arquivos_gg, nome_completo=nome_jogador, nick_sala=nick_gg, periodo_ref=prefixo_data)
             texto_final_unificado += texto_gg
             arquivos_totais += qtd
         if arquivos_party:
-            texto_party, qtd = processar_arquivos_sala(arquivos_party, nick=nick_party)
+            texto_party, qtd = processar_arquivos_sala(arquivos_party, nome_completo=nome_jogador, nick_sala=nick_party, periodo_ref=prefixo_data)
             texto_final_unificado += texto_party
             arquivos_totais += qtd
 
@@ -202,31 +220,31 @@ with col_direita:
         with zipfile.ZipFile(buffer_zip, "w", zipfile.ZIP_DEFLATED) as arquivo_zip:
             
             if arquivos_gg:
-                texto_gg, qtd = processar_arquivos_sala(arquivos_gg, nick=nick_gg)
+                texto_gg, qtd = processar_arquivos_sala(arquivos_gg, nome_completo=nome_jogador, nick_sala=nick_gg, periodo_ref=prefixo_data)
                 if texto_gg: 
                     arquivo_zip.writestr("GGPoker.txt", texto_gg)
                     arquivos_totais += qtd
                     
             if arquivos_party:
-                texto_party, qtd = processar_arquivos_sala(arquivos_party, nick=nick_party)
+                texto_party, qtd = processar_arquivos_sala(arquivos_party, nome_completo=nome_jogador, nick_sala=nick_party, periodo_ref=prefixo_data)
                 if texto_party: 
                     arquivo_zip.writestr("PartyPoker.txt", texto_party)
                     arquivos_totais += qtd
             
             if arquivos_stars:
-                texto_stars, qtd = processar_arquivos_sala(arquivos_stars, aplicar_filtro_sumario=True)
+                texto_stars, qtd = processar_arquivos_sala(arquivos_stars, nome_completo=nome_jogador, periodo_ref=prefixo_data, aplicar_filtro_sumario=True)
                 if texto_stars: 
                     arquivo_zip.writestr("PokerStars.txt", texto_stars)
                     arquivos_totais += qtd
             
             if arquivos_wpn:
-                texto_wpn, qtd = processar_arquivos_sala(arquivos_wpn, aplicar_filtro_sumario=True)
+                texto_wpn, qtd = processar_arquivos_sala(arquivos_wpn, nome_completo=nome_jogador, periodo_ref=prefixo_data, aplicar_filtro_sumario=True)
                 if texto_wpn: 
                     arquivo_zip.writestr("WPN.txt", texto_wpn)
                     arquivos_totais += qtd
             
             if arquivos_coin:
-                texto_coin, qtd = processar_arquivos_sala(arquivos_coin)
+                texto_coin, qtd = processar_arquivos_sala(arquivos_coin, nome_completo=nome_jogador, periodo_ref=prefixo_data)
                 if texto_coin: 
                     arquivo_zip.writestr("CoinPoker.txt", texto_coin)
                     arquivos_totais += qtd
