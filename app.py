@@ -11,24 +11,25 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- DICIONÁRIO DE MESES PARA EXIBIÇÃO E FORMATAÇÃO ---
+# --- DICIONÁRIO DE MESES ---
 MESES_OPCOES = {
     "Janeiro": "01", "Fevereiro": "02", "Março": "03", "Abril": "04",
     "Maio": "05", "Junho": "06", "Julho": "07", "Agosto": "08",
     "Setembro": "09", "Outubro": "10", "Novembro": "11", "Dezembro": "12"
 }
 
-# --- FUNÇÃO PARA PEGAR O MÊS ANTERIOR COMO PADRÃO AUTOMÁTICO ---
+# --- FUNÇÃO PARA PEGAR O MÊS ANTERIOR AUTOMÁTICO ---
 def obter_mes_anterior_padrao():
     hoje = datetime.now()
     ano = hoje.year
     mes = hoje.month
     
     if mes == 1:
-        return "Dezembro", ano - 1
+        return "Dezembro", "12", ano - 1
     
     nomes_lista = list(MESES_OPCOES.keys())
-    return nomes_lista[mes - 2], ano
+    digitos_lista = list(MESES_OPCOES.values())
+    return nomes_lista[mes - 2], digitos_lista[mes - 2], ano
 
 # --- FUNÇÃO DE CONVERSÃO DE NICK ---
 def customizar_nicks_hh(texto_hh, novo_nick):
@@ -51,12 +52,10 @@ def processar_arquivos_sala(arquivos_upados, nick=None, aplicar_filtro_sumario=F
     for arq in arquivos_upados:
         name_arq = arq.name.lower()
         
-        # Se for um arquivo ZIP, entra nele e varre tudo
         if name_arq.endswith(".zip"):
             try:
                 with zipfile.ZipFile(arq) as z:
                     for filename in z.namelist():
-                        # Pula arquivos de sistema ou pastas vazias dentro do zip
                         if filename.startswith("__MACOSX") or filename.endswith("/"):
                             continue
                         
@@ -73,7 +72,6 @@ def processar_arquivos_sala(arquivos_upados, nick=None, aplicar_filtro_sumario=F
             except Exception:
                 pass
         
-        # Se for um arquivo TXT comum (ou enviado em lote/pasta pelo navegador)
         elif name_arq.endswith(".txt"):
             if aplicar_filtro_sumario and eh_sumario_stars_ou_wpn(name_arq):
                 continue
@@ -108,19 +106,26 @@ with col_esquerda:
     st.markdown("---")
     st.subheader("📅 Período da Database")
     
-    # Calcula os valores padrão automáticos baseados na data atual
-    mes_padrao_nome, ano_padrao_num = obter_mes_anterior_padrao()
+    # Calcula o mês anterior padrão de forma automática
+    mes_aut_nome, mes_aut_digito, ano_aut_num = obter_mes_anterior_padrao()
     
-    lista_nomes_meses = list(MESES_OPCOES.keys())
-    idx_padrao = lista_nomes_meses.index(mes_padrao_nome)
+    # A PERGUNTA CHAVE: Começa sempre marcada como Verdadeira (Sim)
+    is_mes_anterior = st.checkbox("Esta database é referente ao mês anterior?", value=True)
     
-    # Inputs de seleção do período
-    mes_selecionado = st.selectbox("Selecione o mês correspondente:", lista_nomes_meses, index=idx_padrao)
-    ano_selecionado = st.number_input("Ano correspondente:", min_value=ano_padrao_num - 2, max_value=ano_padrao_num + 1, value=ano_padrao_num, step=1)
-    
-    # Monta a tag estruturada de data (Ex: [2026.05])
-    digito_mes = MESES_OPCOES[mes_selecionado]
-    prefixo_data = f"[{ano_selecionado}.{digito_mes}]"
+    if is_mes_anterior:
+        # Se sim, usa a data calculada sem mostrar campos adicionais
+        prefixo_data = f"[{ano_aut_num}.{mes_aut_digito}]"
+        st.caption(f"Configurado automaticamente para o mês anterior: **{mes_aut_nome} de {ano_aut_num}**")
+    else:
+        # Se não, abre as caixas para seleção manual do Aluno
+        lista_nomes_meses = list(MESES_OPCOES.keys())
+        idx_padrao = lista_nomes_meses.index(mes_aut_nome)
+        
+        mes_selecionado = st.selectbox("Selecione o mês correspondente:", lista_nomes_meses, index=idx_padrao)
+        ano_selecionado = st.number_input("Ano correspondente:", min_value=ano_aut_num - 2, max_value=ano_aut_num + 1, value=ano_aut_num, step=1)
+        
+        digito_mes = MESES_OPCOES[mes_selecionado]
+        prefixo_data = f"[{ano_selecionado}.{digito_mes}]"
     
     st.markdown("---")
     st.subheader("🎯 Operação")
@@ -137,7 +142,7 @@ with col_direita:
     if modo == "Apenas trocar o nick":
         st.markdown("### 🔴 GGPoker")
         arquivos_gg = st.file_uploader(
-            "Arraste a (pasta do pokercraft .zip) ou (arquivo .txt) da GGPoker", 
+            "Arraste sua (pasta) ou (.txt) ou (.zip) da GGPoker", 
             type=["txt", "zip"], accept_multiple_files=True, key="gg_txt"
         )
         st.markdown("---")
@@ -234,7 +239,6 @@ with col_direita:
         if arquivos_totais > 0:
             st.markdown("---")
             
-            # Formata o nome final do pacote estruturado para o Drive
             nome_zip_final = f"{prefixo_data} {nome_jogador.strip() if nome_jogador.strip() else 'Jogador Sem Nome'}.zip"
             
             st.success(f"📦 Pacote estruturado com sucesso! Total de {arquivos_totais} arquivos de mãos processados.")
