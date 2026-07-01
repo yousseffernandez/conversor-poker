@@ -126,18 +126,21 @@ with col_esquerda:
     lista_nomes_meses = list(MESES_OPCOES.keys())
     idx_padrao = lista_nomes_meses.index(mes_padrao_nome)
     
-    # CAIXINHA DE PERGUNTA RESTAURADA
-    usar_automatico = st.checkbox("Usar mês anterior automaticamente", value=True)
+    # Pergunta clara de confirmação para o aluno
+    eh_mes_anterior = st.checkbox("Este arquivo é referente ao mês anterior?", value=True)
     
-    if usar_automatico:
-        # Se marcado, exibe apenas os textos travados no automático
-        st.info(f"Padrão ativo: **{mes_padrao_nome} de {ano_padrao_num}**")
+    if eh_mes_anterior:
+        # Padrão inteligente ativo
         prefixo_data = f"[{ano_padrao_num}.{MESES_OPCOES[mes_padrao_nome]}]"
     else:
-        # Se desmarcado, libera as caixinhas para o aluno interagir e mudar
-        mes_selecionado = st.selectbox("Selecione o mês correspondente:", lista_nomes_meses, index=idx_padrao)
+        # Se não for, libera as caixinhas para ele escolher
+        mes_selecionado = st.selectbox("Selecione o mês das mãos:", lista_nomes_meses, index=idx_padrao)
         ano_selecionado = st.number_input("Ano correspondente:", min_value=ano_padrao_num - 5, max_value=ano_padrao_num + 1, value=ano_padrao_num, step=1)
         prefixo_data = f"[{ano_selecionado}.{MESES_OPCOES[mes_selecionado]}]"
+    
+    # Exibe em tempo real como o arquivo será nomeado para o Drive
+    nome_exemplo_jogador = nome_jogador.strip() if nome_jogador.strip() else "Nome Do Aluno"
+    st.info(f"💾 **O arquivo será salvo como:**\n`{prefixo_data} {nome_exemplo_jogador}.zip`")
     
     st.markdown("---")
     st.subheader("🎯 Operação")
@@ -203,7 +206,7 @@ with col_direita:
                 texto_stars, qtd = processar_arquivos_sala(arquivos_stars, nome_completo=nome_jogador, periodo_ref=prefixo_data, aplicar_filtro_sumario=True)
                 if texto_stars: arquivo_zip.writestr("PokerStars.txt", texto_stars); arquivos_totais += qtd
             
-            if arquivos_wpn:
+            if archivos_wpn := arquivos_wpn:
                 texto_wpn, qtd = processar_arquivos_sala(arquivos_wpn, nome_completo=nome_jogador, periodo_ref=prefixo_data, aplicar_filtro_sumario=True)
                 if texto_wpn: arquivo_zip.writestr("WPN.txt", texto_wpn); arquivos_totais += qtd
             
