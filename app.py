@@ -48,7 +48,6 @@ def processar_arquivos_sala(arquivos_upados, nome_completo="", nick_sala="", per
     texto_acumulado = ""
     contagem = 0
     
-    # Monta um cabeçalho padrão de referência para auditoria do time
     nome_player = nome_completo.strip() if nome_completo.strip() else "Não Informado"
     nick_player = nick_sala.strip() if nick_sala.strip() else "Não Requerido/Em Branco"
     data_ref = periodo_ref if periodo_ref else "Não Identificado"
@@ -66,7 +65,6 @@ def processar_arquivos_sala(arquivos_upados, nome_completo="", nick_sala="", per
     for arq in arquivos_upados:
         name_arq = arq.name.lower()
         
-        # Se for um arquivo ZIP, entra nele e varre tudo
         if name_arq.endswith(".zip"):
             try:
                 with zipfile.ZipFile(arq) as z:
@@ -87,7 +85,6 @@ def processar_arquivos_sala(arquivos_upados, nome_completo="", nick_sala="", per
             except Exception:
                 pass
         
-        # Se for um arquivo TXT comum (ou enviado em lote/pasta pelo navegador)
         elif name_arq.endswith(".txt"):
             if aplicar_filtro_sumario and eh_sumario_stars_ou_wpn(name_arq):
                 continue
@@ -98,13 +95,12 @@ def processar_arquivos_sala(arquivos_upados, nome_completo="", nick_sala="", per
             texto_acumulado += conteudo + "\n\n"
             contagem += 1
             
-    # Se houveram arquivos processados, aplica o cabeçalho no topo do texto acumulado
     if contagem > 0:
         texto_acumulado = cabecalho_referencia + texto_acumulado
         
     return texto_acumulado, contagem
 
-# --- CAPTURA DE CONFIGURAÇÕES VIA URL (MEMÓRIA DOS FAVORITOS) ---
+# --- CAPTURA DE CONFIGURAÇÕES VIA URL ---
 default_nome = st.query_params.get("nome", "")
 default_gg = st.query_params.get("gg", "")
 default_party = st.query_params.get("party", "")
@@ -116,7 +112,6 @@ st.markdown("---")
 
 col_esquerda, col_direita = st.columns([1, 3], gap="large")
 
-# --- COLUNA DA ESQUERDA (CONFIGURAÇÕES GERAIS) ---
 with col_esquerda:
     st.subheader("⚙️ Configurações Gerais")
     nome_jogador = st.text_input("Seu Nome e Sobrenome", value=default_nome, placeholder="Ex: José Silva")
@@ -126,30 +121,23 @@ with col_esquerda:
     st.markdown("---")
     st.subheader("📅 Período da Database")
     
-    # 1. Calcula o mês anterior e ano padrão automaticamente
+    # Calcula o mês anterior padrão automático
     mes_padrao_nome, ano_padrao_num = obter_mes_anterior_padrao()
-    
-    # 2. Transforma as chaves do dicionário numa lista para encontrar a posição do mês padrão
     lista_nomes_meses = list(MESES_OPCOES.keys())
     idx_padrao = lista_nomes_meses.index(mes_padrao_nome)
     
-    # 3. CRIAÇÃO DOS CAMPOS SELECIONÁVEIS (O aluno escolhe se quiser mudar)
-    mes_selecionado = st.selectbox(
-        "Selecione o mês correspondente:", 
-        lista_nomes_meses, 
-        index=idx_padrao
-    )
-    ano_selecionado = st.number_input(
-        "Ano correspondente:", 
-        min_value=ano_padrao_num - 5, 
-        max_value=ano_padrao_num + 1, 
-        value=ano_padrao_num, 
-        step=1
-    )
+    # CAIXINHA DE PERGUNTA RESTAURADA
+    usar_automatico = st.checkbox("Usar mês anterior automaticamente", value=True)
     
-    # 4. Junta as seleções atuais do aluno para criar o prefixo (ex: [2026.05])
-    digito_mes = MESES_OPCOES[mes_selecionado]
-    prefixo_data = f"[{ano_selecionado}.{digito_mes}]"
+    if usar_automatico:
+        # Se marcado, exibe apenas os textos travados no automático
+        st.info(f"Padrão ativo: **{mes_padrao_nome} de {ano_padrao_num}**")
+        prefixo_data = f"[{ano_padrao_num}.{MESES_OPCOES[mes_padrao_nome]}]"
+    else:
+        # Se desmarcado, libera as caixinhas para o aluno interagir e mudar
+        mes_selecionado = st.selectbox("Selecione o mês correspondente:", lista_nomes_meses, index=idx_padrao)
+        ano_selecionado = st.number_input("Ano correspondente:", min_value=ano_padrao_num - 5, max_value=ano_padrao_num + 1, value=ano_padrao_num, step=1)
+        prefixo_data = f"[{ano_selecionado}.{MESES_OPCOES[mes_selecionado]}]"
     
     st.markdown("---")
     st.subheader("🎯 Operação")
@@ -159,22 +147,15 @@ with col_esquerda:
         index=1 if default_modo == "Organizar para o Drive" else 0
     )
 
-# --- COLUNA DA DIREITA (ÁREA DE UPLOADS) ---
 with col_direita:
     arquivos_totais = 0
 
     if modo == "Apenas trocar o nick":
         st.markdown("### 🔴 GGPoker")
-        arquivos_gg = st.file_uploader(
-            "Arraste sua (pasta) ou (.txt) ou (.zip) da GGPoker", 
-            type=["txt", "zip"], accept_multiple_files=True, key="gg_txt"
-        )
+        arquivos_gg = st.file_uploader("Arraste sua (pasta) ou (.txt) ou (.zip) da GGPoker", type=["txt", "zip"], accept_multiple_files=True, key="gg_txt")
         st.markdown("---")
         st.markdown("### 🧡 PartyPoker")
-        arquivos_party = st.file_uploader(
-            "Arraste sua (pasta) ou (.txt) ou (.zip) do PartyPoker", 
-            type=["txt", "zip"], accept_multiple_files=True, key="party_txt"
-        )
+        arquivos_party = st.file_uploader("Arraste sua (pasta) ou (.txt) ou (.zip) do PartyPoker", type=["txt", "zip"], accept_multiple_files=True, key="party_txt")
 
         texto_final_unificado = ""
         if arquivos_gg:
@@ -189,93 +170,56 @@ with col_direita:
         if arquivos_totais > 0:
             st.markdown("---")
             st.success(f"🎉 Pronto! {arquivos_totais} arquivo(s) convertido(s)!")
-            st.download_button(
-                label="📥 Baixar Arquivo Convertido (.TXT)", 
-                data=texto_final_unificado, file_name="hands_convertidas.txt", 
-                mime="text/plain", use_container_width=True
-            )
+            st.download_button(label="📥 Baixar Arquivo Convertido (.TXT)", data=texto_final_unificado, file_name="hands_convertidas.txt", mime="text/plain", use_container_width=True)
 
     else:
-        # MODO DRIVE
         st.markdown("### 🔴 GGPoker")
-        arquivos_gg = st.file_uploader(
-            "Arraste sua (pasta) ou (.txt) ou (.zip) da GGPoker", 
-            type=["txt", "zip"], accept_multiple_files=True, key="drive_gg"
-        )
+        arquivos_gg = st.file_uploader("Arraste sua (pasta) ou (.txt) ou (.zip) da GGPoker", type=["txt", "zip"], accept_multiple_files=True, key="drive_gg")
         st.markdown("---")
         st.markdown("### 🧡 PartyPoker")
-        arquivos_party = st.file_uploader(
-            "Arraste sua (pasta) ou (.txt) ou (.zip) do PartyPoker", 
-            type=["txt", "zip"], accept_multiple_files=True, key="drive_party"
-        )
+        arquivos_party = st.file_uploader("Arraste sua (pasta) ou (.txt) ou (.zip) do PartyPoker", type=["txt", "zip"], accept_multiple_files=True, key="drive_party")
         st.markdown("---")
         st.markdown("### ♠️ PokerStars")
-        arquivos_stars = st.file_uploader(
-            "Arraste sua (pasta) ou (.txt) ou (.zip) do PokerStars", 
-            type=["txt", "zip"], accept_multiple_files=True, key="drive_stars"
-        )
+        arquivos_stars = st.file_uploader("Arraste sua (pasta) ou (.txt) ou (.zip) do PokerStars", type=["txt", "zip"], accept_multiple_files=True, key="drive_stars")
         st.markdown("---")
         st.markdown("### 🟦 WPN")
-        arquivos_wpn = st.file_uploader(
-            "Arraste sua (pasta) ou (.txt) ou (.zip) da WPN", 
-            type=["txt", "zip"], accept_multiple_files=True, key="drive_wpn"
-        )
+        arquivos_wpn = st.file_uploader("Arraste sua (pasta) ou (.txt) ou (.zip) da WPN", type=["txt", "zip"], accept_multiple_files=True, key="drive_wpn")
         st.markdown("---")
         st.markdown("### 🪙 CoinPoker")
-        arquivos_coin = st.file_uploader(
-            "Arraste sua (pasta) ou (.txt) ou (.zip) do CoinPoker", 
-            type=["txt", "zip"], accept_multiple_files=True, key="drive_coin"
-        )
+        arquivos_coin = st.file_uploader("Arraste sua (pasta) ou (.txt) ou (.zip) do CoinPoker", type=["txt", "zip"], accept_multiple_files=True, key="drive_coin")
 
         buffer_zip = io.BytesIO()
         with zipfile.ZipFile(buffer_zip, "w", zipfile.ZIP_DEFLATED) as arquivo_zip:
             
             if arquivos_gg:
                 texto_gg, qtd = processar_arquivos_sala(arquivos_gg, nome_completo=nome_jogador, nick_sala=nick_gg, periodo_ref=prefixo_data)
-                if texto_gg: 
-                    arquivo_zip.writestr("GGPoker.txt", texto_gg)
-                    arquivos_totais += qtd
+                if texto_gg: arquivo_zip.writestr("GGPoker.txt", texto_gg); arquivos_totais += qtd
                     
             if arquivos_party:
                 texto_party, qtd = processar_arquivos_sala(arquivos_party, nome_completo=nome_jogador, nick_sala=nick_party, periodo_ref=prefixo_data)
-                if texto_party: 
-                    arquivo_zip.writestr("PartyPoker.txt", texto_party)
-                    arquivos_totais += qtd
+                if texto_party: arquivo_zip.writestr("PartyPoker.txt", texto_party); arquivos_totais += qtd
             
             if arquivos_stars:
                 texto_stars, qtd = processar_arquivos_sala(arquivos_stars, nome_completo=nome_jogador, periodo_ref=prefixo_data, aplicar_filtro_sumario=True)
-                if texto_stars: 
-                    arquivo_zip.writestr("PokerStars.txt", texto_stars)
-                    arquivos_totais += qtd
+                if texto_stars: arquivo_zip.writestr("PokerStars.txt", texto_stars); arquivos_totais += qtd
             
             if arquivos_wpn:
                 texto_wpn, qtd = processar_arquivos_sala(arquivos_wpn, nome_completo=nome_jogador, periodo_ref=prefixo_data, aplicar_filtro_sumario=True)
-                if texto_wpn: 
-                    arquivo_zip.writestr("WPN.txt", texto_wpn)
-                    arquivos_totais += qtd
+                if texto_wpn: arquivo_zip.writestr("WPN.txt", texto_wpn); arquivos_totais += qtd
             
             if arquivos_coin:
                 texto_coin, qtd = processar_arquivos_sala(arquivos_coin, nome_completo=nome_jogador, periodo_ref=prefixo_data)
-                if texto_coin: 
-                    arquivo_zip.writestr("CoinPoker.txt", texto_coin)
-                    arquivos_totais += qtd
+                if texto_coin: arquivo_zip.writestr("CoinPoker.txt", texto_coin); arquivos_totais += qtd
 
         if arquivos_totais > 0:
             st.markdown("---")
-            
-            # Formata o nome final do pacote estruturado para o Drive
             nome_zip_final = f"{prefixo_data} {nome_jogador.strip() if nome_jogador.strip() else 'Jogador Sem Nome'}.zip"
             
             st.success(f"📦 Pacote estruturado com sucesso! Total de {arquivos_totais} arquivos de mãos processados.")
             st.info("ℹ️ **Próximo passo:** Baixe o arquivo abaixo e coloque-o na sua pasta de Database no Google Drive!")
             buffer_zip.seek(0)
-            st.download_button(
-                label=f"📥 Baixar Pacote: {nome_zip_final}", 
-                data=buffer_zip, file_name=nome_zip_final, 
-                mime="application/zip", use_container_width=True
-            )
+            st.download_button(label=f"📥 Baixar Pacote: {nome_zip_final}", data=buffer_zip, file_name=nome_zip_final, mime="application/zip", use_container_width=True)
 
-# --- FAVORITOS (RODAPÉ DA ESQUERDA) ---
 with col_esquerda:
     if nome_jogador or nick_gg or nick_party:
         st.markdown("---")
