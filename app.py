@@ -109,10 +109,14 @@ with col_esquerda:
     lista_nomes_meses = list(MESES_OPCOES.keys())
     idx_padrao = lista_nomes_meses.index(mes_padrao_nome)
     
-    # Pergunta de confirmação para o aluno
-    eh_mes_anterior = st.checkbox("Este arquivo é referente ao mês anterior?", value=True)
+    # Substituído checkbox por botões de seleção Sim/Não (Default: Sim)
+    eh_mes_anterior = st.radio(
+        "Este arquivo é referente ao mês anterior?",
+        ["Sim", "Não"],
+        index=0
+    )
     
-    if eh_mes_anterior:
+    if eh_mes_anterior == "Sim":
         prefixo_data = f"[{ano_padrao_num}.{MESES_OPCOES[mes_padrao_nome]}]"
     else:
         mes_selecionado = st.selectbox("Selecione o mês das mãos:", lista_nomes_meses, index=idx_padrao)
