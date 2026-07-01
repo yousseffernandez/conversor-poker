@@ -137,7 +137,7 @@ with col_direita:
     if modo == "Apenas trocar o nick":
         st.markdown("### 🔴 GGPoker")
         arquivos_gg = st.file_uploader(
-            "Arraste sua (pasta) ou (.txt) ou (.zip) da GGPoker", 
+            "Arraste a (pasta do pokercraft .zip) ou (arquivo .txt) da GGPoker", 
             type=["txt", "zip"], accept_multiple_files=True, key="gg_txt"
         )
         st.markdown("---")
