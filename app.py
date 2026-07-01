@@ -142,7 +142,7 @@ with col_direita:
     if modo == "Apenas trocar o nick":
         st.markdown("### 🔴 GGPoker")
         arquivos_gg = st.file_uploader(
-            "Arraste sua (pasta) ou (.txt) ou (.zip) da GGPoker", 
+            "Arraste a (pasta do pokercraft .zip) da GGPoker", 
             type=["txt", "zip"], accept_multiple_files=True, key="gg_txt"
         )
         st.markdown("---")
@@ -175,7 +175,7 @@ with col_direita:
         # MODO DRIVE
         st.markdown("### 🔴 GGPoker")
         arquivos_gg = st.file_uploader(
-            "Arraste sua (pasta) ou (.txt) ou (.zip) da GGPoker", 
+            "Arraste a (pasta do pokercraft .zip) da GGPoker",
             type=["txt", "zip"], accept_multiple_files=True, key="drive_gg"
         )
         st.markdown("---")
