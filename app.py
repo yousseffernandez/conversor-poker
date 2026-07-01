@@ -141,7 +141,7 @@ with col_direita:
         st.markdown("---")
         st.markdown("### ♠️ PokerStars")
         arquivos_stars = st.file_uploader(
-            "Arraste os arquivos .txt do PokerStars", 
+            "Arraste sua pasta ou .txt ou .zip do PokerStars", 
             type=["txt"], accept_multiple_files=True, key="drive_stars"
         )
         st.markdown("---")
