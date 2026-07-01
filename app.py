@@ -11,20 +11,24 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- FUNÇÃO PARA CALCULAR O MÊS ANTERIOR AUTOMATICAMENTE ---
-def obtener_ano_mes_retroativo():
+# --- DICIONÁRIO DE MESES PARA EXIBIÇÃO E FORMATAÇÃO ---
+MESES_OPCOES = {
+    "Janeiro": "01", "Fevereiro": "02", "Março": "03", "Abril": "04",
+    "Maio": "05", "Junho": "06", "Julho": "07", "Agosto": "08",
+    "Setembro": "09", "Outubro": "10", "Novembro": "11", "Dezembro": "12"
+}
+
+# --- FUNÇÃO PARA PEGAR O MÊS ANTERIOR COMO PADRÃO AUTOMÁTICO ---
+def obter_mes_anterior_padrao():
     hoje = datetime.now()
     ano = hoje.year
     mes = hoje.month
     
     if mes == 1:
-        mes_anterior = 12
-        ano_anterior = ano - 1
-    else:
-        mes_anterior = mes - 1
-        ano_anterior = ano
-        
-    return f"[{ano_anterior}.{mes_anterior:02d}]"
+        return "Dezembro", ano - 1
+    
+    nomes_lista = list(MESES_OPCOES.keys())
+    return nomes_lista[mes - 2], ano
 
 # --- FUNÇÃO DE CONVERSÃO ---
 def customizar_nicks_hh(texto_hh, novo_nick):
@@ -35,7 +39,6 @@ def customizar_nicks_hh(texto_hh, novo_nick):
 # --- FUNÇÃO ISOLADA PARA FILTRAR SUMÁRIOS APENAS DAS SALAS QUE OS GERAM ---
 def eh_sumario_stars_ou_wpn(nome_arquivo):
     nome_lower = nome_arquivo.lower()
-    # Filtra apenas se for um arquivo de sumário explícito do PokerStars ou WPN
     if nome_lower.endswith("summary.txt") or "summary" in nome_lower:
         return True
     return False
@@ -80,6 +83,23 @@ with col_esquerda:
     nome_jogador = st.text_input("Seu Nome e Sobrenome", value=default_nome, placeholder="Ex: José Silva")
     nick_gg = st.text_input("Nick no GGPoker", value=default_gg, placeholder="Seu nick na GG")
     nick_party = st.text_input("Nick no PartyPoker", value=default_party, placeholder="Seu nick na Party")
+    
+    st.markdown("---")
+    st.subheader("📅 Período da Database")
+    
+    # Calcula os valores padrão automáticos baseados na data de hoje
+    mes_padrao_nome, ano_padrao_num = obter_mes_anterior_padrao()
+    
+    lista_nomes_meses = list(MESES_OPCOES.keys())
+    idx_padrao = lista_nomes_meses.index(mes_padrao_nome)
+    
+    # Inputs para o Aluno interagir
+    mes_selecionado = st.selectbox("Selecione o mês correspondente:", lista_nomes_meses, index=idx_padrao)
+    ano_selecionado = st.number_input("Ano correspondente:", min_value=ano_padrao_num - 2, max_value=ano_padrao_num + 1, value=ano_padrao_num, step=1)
+    
+    # Monta a tag estruturada dinamicamente (Ex: [2026.05])
+    digito_mes = MESES_OPCOES[mes_selecionado]
+    prefixo_data = f"[{ano_selecionado}.{digito_mes}]"
     
     st.markdown("---")
     st.subheader("🎯 Operação")
@@ -141,7 +161,7 @@ with col_direita:
         st.markdown("---")
         st.markdown("### ♠️ PokerStars")
         arquivos_stars = st.file_uploader(
-            "Arraste sua pasta ou .txt ou .zip do PokerStars", 
+            "Arraste os arquivos .txt do PokerStars", 
             type=["txt"], accept_multiple_files=True, key="drive_stars"
         )
         st.markdown("---")
@@ -193,7 +213,7 @@ with col_direita:
         if arquivos_totais > 0:
             st.markdown("---")
             
-            prefixo_data = obtener_ano_mes_retroativo()
+            # Gera o nome usando a escolha feita pelo aluno nas caixinhas
             nome_zip_final = f"{prefixo_data} {nome_jogador.strip() if nome_jogador.strip() else 'Jogador Sem Nome'}.zip"
             
             st.success(f"📦 Pacote estruturado com sucesso! Total de {arquivos_totais} arquivos de mãos processados.")
