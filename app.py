@@ -207,4 +207,7 @@ with col_direita:
 with col_esquerda:
     if nome_jogador or nick_gg or nick_party:
         st.markdown("---")
-        with st.expander("
+        with st.expander("💾 Salvar Minhas Configurações"):
+            link_salvar = f"https://trocartick.streamlit.app/?nome={nome_jogador.replace(' ', '%20')}&gg={nick_gg}&party={nick_party}&modo={modo.replace(' ', '%20')}"
+            st.markdown("Adicione aos **Favoritos**:")
+            st.code(link_salvar, language="text")
