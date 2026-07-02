@@ -179,7 +179,7 @@ with col_direita:
 
         # BOTÃO PARA CONFIRMAR PROCESSAMENTO (MODO DRIVE)
         st.markdown(" ")
-        if st.button("🚀 Estruturar e Gerar Pacote para o Drive", use_container_width=True, type="primary"):
+        if st.button("🚀 Converter e gerar arquivo ", use_container_width=True, type="primary"):
             buffer_zip = io.BytesIO()
             arquivos_totais = 0
             
