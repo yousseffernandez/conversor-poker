@@ -195,7 +195,7 @@ with col_direita:
         arquivos_coin = st.file_uploader("Arraste sua (pasta) ou (.txt) ou (.zip) do CoinPoker", type=["txt", "zip"], accept_multiple_files=True, key="drive_coin")
 
         st.markdown(" ")
-        if st.button("🚀 Estruturar e Gerar Pacote para o Drive", use_container_width=True, type="primary"):
+        if st.button("🚀 Gerar Arquivo ", use_container_width=True, type="primary"):
             buffer_zip = io.BytesIO()
             arquivos_totais = 0
             
