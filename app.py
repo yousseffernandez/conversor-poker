@@ -11,14 +11,14 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- DICIONÁRIO DE MESES ---
+# --- DICIONÁRIO DE MESES PARA EXIBIÇÃO E FORMATAÇÃO ---
 MESES_OPCOES = {
     "Janeiro": "01", "Fevereiro": "02", "Março": "03", "Abril": "04",
     "Maio": "05", "Junho": "06", "Julho": "07", "Agosto": "08",
     "Setembro": "09", "Outubro": "10", "Novembro": "11", "Dezembro": "12"
 }
 
-# --- FUNÇÃO PARA PEGAR O MÊS ANTERIOR AUTOMÁTICO ---
+# --- FUNÇÃO PARA PEGAR O MÊS ANTERIOR COMO PADRÃO AUTOMÁTICO ---
 def obter_mes_anterior_padrao():
     hoje = datetime.now()
     ano = hoje.year
@@ -30,7 +30,7 @@ def obter_mes_anterior_padrao():
     nomes_lista = list(MESES_OPCOES.keys())
     return nomes_lista[mes - 2], ano
 
-# --- FUNÇÃO DE CONVERSÃO DE NICK (GG, Party e agora CoinPoker) ---
+# --- FUNÇÃO DE CONVERSÃO DE NICK ---
 def customizar_nicks_hh(texto_hh, novo_nick):
     if not novo_nick:
         return texto_hh
@@ -43,7 +43,7 @@ def eh_sumario_stars_ou_wpn(nome_arquivo):
         return True
     return False
 
-# --- FUNÇÃO GENÉRICA DE PROCESSAMENTO ---
+# --- FUNÇÃO GENÉRICA PARA PROCESSAR QUALQUER SALA (SEM CABEÇALHO EXTRA) ---
 def processar_arquivos_sala(arquivos_upados, nick_sala="", aplicar_filtro_sumario=False):
     texto_acumulado = ""
     contagem = 0
@@ -101,17 +101,22 @@ with col_esquerda:
     nome_jogador = st.text_input("Seu Nome e Sobrenome", value=default_nome, placeholder="Ex: José Silva")
     nick_gg = st.text_input("Nick no GGPoker", value=default_gg, placeholder="Seu nick na GG")
     nick_party = st.text_input("Nick no PartyPoker", value=default_party, placeholder="Seu nick na Party")
-    # NOVO: Adicionado campo de Nick para a CoinPoker
     nick_coin = st.text_input("Nick no CoinPoker", value=default_coin, placeholder="Seu nick na Coin")
     
     st.markdown("---")
     st.subheader("📅 Período da Database")
     
+    # Calcula o mês anterior padrão automático
     mes_padrao_nome, ano_padrao_num = obter_mes_anterior_padrao()
     lista_nomes_meses = list(MESES_OPCOES.keys())
     idx_padrao = lista_nomes_meses.index(mes_padrao_nome)
     
-    eh_mes_anterior = st.radio("Este arquivo é referente ao mês anterior?", ["Sim", "Não"], index=0)
+    # Pergunta de confirmação Sim/Não (Default: Sim)
+    eh_mes_anterior = st.radio(
+        "Este arquivo é referente ao mês anterior?",
+        ["Sim", "Não"],
+        index=0
+    )
     
     if eh_mes_anterior == "Sim":
         prefixo_data = f"[{ano_padrao_num}.{MESES_OPCOES[mes_padrao_nome]}]"
@@ -120,12 +125,25 @@ with col_esquerda:
         ano_selecionado = st.number_input("Ano correspondente:", min_value=ano_padrao_num - 5, max_value=ano_padrao_num + 1, value=ano_padrao_num, step=1)
         prefixo_data = f"[{ano_selecionado}.{MESES_OPCOES[mes_selecionado]}]"
     
+    # Exibe em tempo real como o arquivo será nomeado para o Drive
     nome_exemplo_jogador = nome_jogador.strip() if nome_jogador.strip() else "Nome Do Aluno"
     st.info(f"💾 **O arquivo será salvo como:**\n`{prefixo_data} {nome_exemplo_jogador}.zip`")
     
     st.markdown("---")
     st.subheader("🎯 Operação")
-    modo = st.radio("Escolha o modo:", ["Apenas trocar o nick", "Organizar para o Drive"], index=1 if default_modo == "Organizar para o Drive" else 0)
+    modo = st.radio(
+        "Escolha o modo:", 
+        ["Apenas trocar o nick", "Organizar para o Drive"], 
+        index=1 if default_modo == "Organizar para o Drive" else 0
+    )
+
+    # --- SALVAR CONFIGURAÇÕES POSICIONADO EXATAMENTE NO FIM DA COLUNA DA ESQUERDA ---
+    if nome_jogador or nick_gg or nick_party or nick_coin:
+        st.markdown("---")
+        with st.expander("💾 Salvar Minhas Configurações"):
+            link_salvar = f"https://trocartick.streamlit.app/?nome={nome_jogador.replace(' ', '%20')}&gg={nick_gg}&party={nick_party}&coin={nick_coin}&modo={modo.replace(' ', '%20')}"
+            st.markdown("Adicione aos **Favoritos**:")
+            st.code(link_salvar, language="text")
 
 with col_direita:
     if modo == "Apenas trocar o nick":
@@ -138,7 +156,6 @@ with col_direita:
         st.markdown("### 🪙 CoinPoker")
         arquivos_coin = st.file_uploader("Arraste os arquivos .txt ou .zip do CoinPoker", type=["txt", "zip"], accept_multiple_files=True, key="coin_txt")
 
-        # BOTÃO PARA CONFIRMAR PROCESSAMENTO (MODO INDIVIDUAL)
         st.markdown(" ")
         if st.button("🚀 Converter e Unificar Nicks", use_container_width=True, type="primary"):
             texto_final_unificado = ""
@@ -177,9 +194,8 @@ with col_direita:
         st.markdown("### 🪙 CoinPoker")
         arquivos_coin = st.file_uploader("Arraste sua (pasta) ou (.txt) ou (.zip) do CoinPoker", type=["txt", "zip"], accept_multiple_files=True, key="drive_coin")
 
-        # BOTÃO PARA CONFIRMAR PROCESSAMENTO (MODO DRIVE)
         st.markdown(" ")
-        if st.button("🚀 Converter e gerar arquivo ", use_container_width=True, type="primary"):
+        if st.button("🚀 Estruturar e Gerar Pacote para o Drive", use_container_width=True, type="primary"):
             buffer_zip = io.BytesIO()
             arquivos_totais = 0
             
@@ -194,30 +210,3 @@ with col_direita:
                 
                 if arquivos_stars:
                     texto_stars, qtd = processar_arquivos_sala(arquivos_stars, aplicar_filtro_sumario=True)
-                    if texto_stars: arquivo_zip.writestr("PokerStars.txt", texto_stars); arquivos_totais += qtd
-                
-                if arquivos_wpn:
-                    texto_wpn, qtd = processar_arquivos_sala(arquivos_wpn, aplicar_filtro_sumario=True)
-                    if texto_wpn: arquivo_zip.writestr("WPN.txt", texto_wpn); arquivos_totais += qtd
-                
-                if arquivos_coin:
-                    # COINPOKER ATUALIZADA: Agora passa o nick_coin para aplicar a conversão de Hero
-                    texto_coin, qtd = processar_arquivos_sala(arquivos_coin, nick_sala=nick_coin)
-                    if texto_coin: arquivo_zip.writestr("CoinPoker.txt", texto_coin); arquivos_totais += qtd
-
-            if arquivos_totais > 0:
-                st.markdown("---")
-                nome_zip_final = f"{prefixo_data} {nome_jogador.strip() if nome_jogador.strip() else 'Jogador Sem Nome'}.zip"
-                st.success(f"📦 Pacote estruturado com sucesso! Total de {arquivos_totais} arquivos de mãos processados.")
-                buffer_zip.seek(0)
-                st.download_button(label=f"📥 Baixar Pacote: {nome_zip_final}", data=buffer_zip, file_name=nome_zip_final, mime="application/zip", use_container_width=True)
-            else:
-                st.error("⚠️ Por favor, faça upload de pelo menos um arquivo antes de clicar para gerar o pacote.")
-
-with col_esquerda:
-    if nome_jogador or nick_gg or nick_party or nick_coin:
-        st.markdown("---")
-        with st.expander("💾 Salvar Minhas Configurações"):
-            link_salvar = f"https://trocartick.streamlit.app/?nome={nome_jogador.replace(' ', '%20')}&gg={nick_gg}&party={nick_party}&coin={nick_coin}&modo={modo.replace(' ', '%20')}"
-            st.markdown("Adicione aos **Favoritos**:")
-            st.code(link_salvar, language="text")
