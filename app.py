@@ -43,7 +43,7 @@ def eh_sumario_stars_ou_wpn(nome_arquivo):
         return True
     return False
 
-# --- FUNÇÃO GENÉRICA PARA PROCESSAR QUALQUER SALA (SEM CABEÇALHO EXTRA) ---
+# --- FUNÇÃO GENÉRICA PARA PROCESSAR QUALQUER SALA ---
 def processar_arquivos_sala(arquivos_upados, nick_sala="", aplicar_filtro_sumario=False):
     texto_acumulado = ""
     contagem = 0
@@ -106,12 +106,10 @@ with col_esquerda:
     st.markdown("---")
     st.subheader("📅 Período da Database")
     
-    # Calcula o mês anterior padrão automático
     mes_padrao_nome, ano_padrao_num = obter_mes_anterior_padrao()
     lista_nomes_meses = list(MESES_OPCOES.keys())
     idx_padrao = lista_nomes_meses.index(mes_padrao_nome)
     
-    # Pergunta de confirmação Sim/Não (Default: Sim)
     eh_mes_anterior = st.radio(
         "Este arquivo é referente ao mês anterior?",
         ["Sim", "Não"],
@@ -125,7 +123,6 @@ with col_esquerda:
         ano_selecionado = st.number_input("Ano correspondente:", min_value=ano_padrao_num - 5, max_value=ano_padrao_num + 1, value=ano_padrao_num, step=1)
         prefixo_data = f"[{ano_selecionado}.{MESES_OPCOES[mes_selecionado]}]"
     
-    # Exibe em tempo real como o arquivo será nomeado para o Drive
     nome_exemplo_jogador = nome_jogador.strip() if nome_jogador.strip() else "Nome Do Aluno"
     st.info(f"💾 **O arquivo será salvo como:**\n`{prefixo_data} {nome_exemplo_jogador}.zip`")
     
@@ -137,7 +134,6 @@ with col_esquerda:
         index=1 if default_modo == "Organizar para o Drive" else 0
     )
 
-    # --- SALVAR CONFIGURAÇÕES POSICIONADO EXATAMENTE NO FIM DA COLUNA DA ESQUERDA ---
     if nome_jogador or nick_gg or nick_party or nick_coin:
         st.markdown("---")
         with st.expander("💾 Salvar Minhas Configurações"):
@@ -172,10 +168,21 @@ with col_direita:
                 texto_final_unificado += texto_coin; arquivos_totais += qtd
 
             if arquivos_totais > 0:
-                st.success(f"🎉 Pronto! {arquivos_totais} arquivo(s) convertido(s)!")
-                st.download_button(label="📥 Baixar Arquivo Convertido (.TXT)", data=texto_final_unificado, file_name="hands_convertidas.txt", mime="text/plain", use_container_width=True)
+                st.session_state['txt_pronto'] = texto_final_unificado
+                st.session_state['qtd_txt'] = arquivos_totais
             else:
+                st.session_state.pop('txt_pronto', None)
                 st.error("⚠️ Nenhum arquivo foi enviado para processamento.")
+
+        if 'txt_pronto' in st.session_state:
+            st.success(f"🎉 Pronto! {st.session_state['qtd_txt']} arquivo(s) convertido(s)!")
+            st.download_button(
+                label="📥 Baixar Arquivo Convertido (.TXT)", 
+                data=st.session_state['txt_pronto'], 
+                file_name="hands_convertidas.txt", 
+                mime="text/plain", 
+                use_container_width=True
+            )
 
     else:
         # MODO DRIVE
@@ -195,7 +202,7 @@ with col_direita:
         arquivos_coin = st.file_uploader("Arraste sua (pasta) ou (.txt) ou (.zip) do CoinPoker", type=["txt", "zip"], accept_multiple_files=True, key="drive_coin")
 
         st.markdown(" ")
-        if st.button("🚀 Gerar Arquivo ", use_container_width=True, type="primary"):
+        if st.button("🚀 Gerar Pacote para o Drive", use_container_width=True, type="primary"):
             buffer_zip = io.BytesIO()
             arquivos_totais = 0
             
@@ -210,3 +217,33 @@ with col_direita:
                 
                 if arquivos_stars:
                     texto_stars, qtd = processar_arquivos_sala(arquivos_stars, aplicar_filtro_sumario=True)
+                    if texto_stars: arquivo_zip.writestr("PokerStars.txt", texto_stars); arquivos_totais += qtd
+                
+                if arquivos_wpn:
+                    texto_wpn, qtd = processar_arquivos_sala(arquivos_wpn, aplicar_filtro_sumario=True)
+                    if texto_wpn: arquivo_zip.writestr("WPN.txt", texto_wpn); arquivos_totais += qtd
+                
+                if arquivos_coin:
+                    texto_coin, qtd = processar_arquivos_sala(arquivos_coin, nick_sala=nick_coin)
+                    if texto_coin: arquivo_zip.writestr("CoinPoker.txt", texto_coin); arquivos_totais += qtd
+
+            if arquivos_totais > 0:
+                nome_zip_final = f"{prefixo_data} {nome_jogador.strip() if nome_jogador.strip() else 'Jogador Sem Nome'}.zip"
+                buffer_zip.seek(0)
+                st.session_state['zip_bytes'] = buffer_zip.getvalue()
+                st.session_state['zip_nome'] = nome_zip_final
+                st.session_state['qtd_zip'] = arquivos_totais
+            else:
+                st.session_state.pop('zip_bytes', None)
+                st.error("⚠️ Por favor, faça upload de pelo menos um arquivo antes de clicar para gerar o pacote.")
+
+        if 'zip_bytes' in st.session_state:
+            st.markdown("---")
+            st.success(f"📦 Pacote estruturado com sucesso! Total de {st.session_state['qtd_zip']} arquivos de mãos processados.")
+            st.download_button(
+                label=f"📥 Baixar Pacote: {st.session_state['zip_nome']}", 
+                data=st.session_state['zip_bytes'], 
+                file_name=st.session_state['zip_nome'], 
+                mime="application/zip", 
+                use_container_width=True
+            )
